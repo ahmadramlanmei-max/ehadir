@@ -249,6 +249,108 @@
             }
         }
     </style>
+
+    <style id="ehadir-mobile-sidebar-functional-fix">
+      /* Perbaikan terbatas sidebar HP: panel rapi, menu bisa digulir, dan latar bisa ditutup dengan sentuhan. */
+      @media (max-width: 767px) {
+        body.is-logged-in { overflow: hidden !important; }
+        body.is-logged-in #app-sidebar {
+          display: none !important;
+          position: fixed !important;
+          inset: 0 auto 0 0 !important;
+          width: min(84vw, 320px) !important;
+          min-width: 0 !important;
+          max-width: calc(100vw - 52px) !important;
+          height: 100vh !important;
+          height: 100dvh !important;
+          max-height: 100vh !important;
+          max-height: 100dvh !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-sizing: border-box !important;
+          flex-direction: column !important;
+          overflow: hidden !important;
+          transform: translateX(-105%) !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          transition: transform .22s ease, visibility .22s ease !important;
+          z-index: 10001 !important;
+          box-shadow: 12px 0 35px rgba(15,23,42,.28) !important;
+          border-radius: 0 16px 16px 0 !important;
+        }
+        body.is-logged-in #app-sidebar.show-mobile {
+          display: flex !important;
+          transform: translateX(0) !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+        }
+        body.is-logged-in.sidebar-mobile-open::before {
+          content: "" !important;
+          position: fixed !important;
+          inset: 0 !important;
+          background: rgba(2,6,23,.58) !important;
+          -webkit-backdrop-filter: blur(2px) !important;
+          backdrop-filter: blur(2px) !important;
+          z-index: 10000 !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child {
+          flex: 0 0 auto !important;
+          min-height: 92px !important;
+          height: auto !important;
+          max-height: none !important;
+          padding: 16px !important;
+          gap: 10px !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child h2 {
+          font-size: 1.35rem !important;
+          white-space: nowrap !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child > button {
+          display: flex !important;
+          flex: 0 0 36px !important;
+          width: 36px !important;
+          height: 36px !important;
+          align-items: center !important;
+          justify-content: center !important;
+          touch-action: manipulation !important;
+        }
+        body.is-logged-in #app-sidebar > nav {
+          flex: 1 1 auto !important;
+          min-height: 0 !important;
+          height: auto !important;
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch !important;
+          overscroll-behavior: contain !important;
+          padding: 12px !important;
+          padding-bottom: 24px !important;
+        }
+        body.is-logged-in #app-sidebar > nav .nav-btn {
+          min-height: 46px !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          white-space: normal !important;
+          overflow-wrap: anywhere !important;
+          text-align: left !important;
+          line-height: 1.35 !important;
+          padding: 12px !important;
+          margin-bottom: 4px !important;
+          touch-action: manipulation !important;
+        }
+        body.is-logged-in #app-sidebar > div:last-child {
+          flex: 0 0 auto !important;
+          padding: 12px 16px max(12px, env(safe-area-inset-bottom)) !important;
+        }
+        body.is-logged-in #app-sidebar > div:last-child button {
+          min-height: 46px !important;
+          touch-action: manipulation !important;
+        }
+        body.is-logged-in #app-main { min-width: 0 !important; width: 100% !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body.is-logged-in #app-sidebar { transition: none !important; }
+      }
+    </style>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
 <body class="text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
@@ -1293,6 +1395,7 @@
             // Reset navigasi mobile agar tidak tertinggal setelah logout.
             const sidebar = document.getElementById('app-sidebar');
             if (sidebar) sidebar.classList.remove('show-mobile');
+            document.body.classList.remove('sidebar-mobile-open');
         }
 
         function switchView(viewId) {
@@ -1314,7 +1417,9 @@
             }
 
             if(window.innerWidth < 768) {
-                document.getElementById('app-sidebar').classList.remove('show-mobile');
+                const mobileSidebar = document.getElementById('app-sidebar');
+                if (mobileSidebar) mobileSidebar.classList.remove('show-mobile');
+                document.body.classList.remove('sidebar-mobile-open');
             }
 
             // Fitur Autofocus jika pindah ke Scanner
@@ -1342,9 +1447,34 @@
             }
         }
 
-        function toggleSidebar() {
-            document.getElementById('app-sidebar').classList.toggle('show-mobile');
+        function toggleSidebar(forceOpen) {
+            const sidebar = document.getElementById('app-sidebar');
+            if (!sidebar || window.innerWidth >= 768) return;
+            const shouldOpen = typeof forceOpen === 'boolean'
+                ? forceOpen
+                : !sidebar.classList.contains('show-mobile');
+            sidebar.classList.toggle('show-mobile', shouldOpen);
+            document.body.classList.toggle('sidebar-mobile-open', shouldOpen && document.body.classList.contains('is-logged-in'));
         }
+
+        // Tutup sidebar HP dengan mengetuk area gelap atau menekan tombol Escape.
+        document.addEventListener('click', function (event) {
+            if (!document.body.classList.contains('sidebar-mobile-open')) return;
+            const sidebar = document.getElementById('app-sidebar');
+            if (sidebar && !sidebar.contains(event.target) && !event.target.closest('header button[onclick="toggleSidebar()"]')) {
+                toggleSidebar(false);
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && document.body.classList.contains('sidebar-mobile-open')) toggleSidebar(false);
+        });
+        window.addEventListener('resize', function () {
+            if (window.innerWidth >= 768) {
+                const sidebar = document.getElementById('app-sidebar');
+                if (sidebar) sidebar.classList.remove('show-mobile');
+                document.body.classList.remove('sidebar-mobile-open');
+            }
+        });
 
         function startScanner() {
             if (typeof Html5Qrcode === 'undefined') {
