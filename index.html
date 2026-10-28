@@ -632,6 +632,10 @@
             </div>
 
             <div id="view-scanner" class="view-section">
+                <div id="offline-attendance-status" class="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-3" role="status" aria-live="polite">
+                    <div class="flex items-center gap-2"><span id="offline-status-dot" class="inline-block w-2.5 h-2.5 rounded-full bg-slate-400"></span><span id="offline-status-text" class="font-semibold text-slate-700">Memeriksa koneksi...</span></div>
+                    <div class="flex items-center gap-3"><span id="offline-pending-count" class="text-slate-500">Antrean: 0</span><button id="offline-sync-button" type="button" class="rounded-lg bg-blue-600 px-3 py-2 text-white font-bold hover:bg-blue-700 disabled:opacity-50" onclick="syncOfflineAttendance(true)">Sinkronkan</button></div>
+                </div>
                 <div class="max-w-5xl mx-auto">
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                         <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-2 overflow-hidden">
@@ -1208,6 +1212,7 @@
 /* E-Hadir GitHub Pages -> Cloudflare Worker compatibility layer */
 (function () {
   const WORKER_API_URL = 'https://ehadir-biometric-demo.ahmad-ramlan-mei.workers.dev/api';
+  window.EHADIR_WORKER_API_URL = WORKER_API_URL;
   let successHandler = null, failureHandler = null;
   const runner = new Proxy({}, {
     get(_target, prop) {
@@ -1654,27 +1659,35 @@
         }
 
         function processAttendance(qrId) {
-            if (typeof google === 'undefined') {
-                showToast("Koneksi ke server Google terputus.", "error");
+            if (!currentUser || !currentUser.sessionToken) {
+                showToast("Silakan login kembali sebelum melakukan absensi.", "error");
                 return;
             }
-
             const jkt = getJakartaTime();
             const dateStr = ("0" + jkt.getDate()).slice(-2) + "/" + ("0" + (jkt.getMonth() + 1)).slice(-2) + "/" + jkt.getFullYear();
             const timeStr = ("0" + jkt.getHours()).slice(-2) + ":" + ("0" + jkt.getMinutes()).slice(-2) + ":" + ("0" + jkt.getSeconds()).slice(-2);
-            
-            showLoading("Memproses...");
-            
+            const transactionId = createOfflineTransactionId();
+            showLoading("Memproses absensi...");
             google.script.run
-                .withSuccessHandler(function(result) {
+                .withSuccessHandler(async function(result) {
                     hideLoading();
+                    // Hanya kegagalan komunikasi bridge yang dimasukkan antrean; kesalahan validasi/login tidak disamarkan sebagai offline.
+                    const message = String(result && result.message || '');
+                    if (result && result.status === 'error' && /Gagal menghubungi Apps Script|Respons Apps Script bukan JSON|Failed to fetch|NetworkError|fetch failed/i.test(message)) {
+                        const savedOffline = await queueOfflineAttendance({transactionId, qrId, dateStr, timeStr, operator: currentUser.username, createdAt: new Date().toISOString()});
+                        if (savedOffline) showOfflineQueuedResult(qrId, dateStr, timeStr);
+                        return;
+                    }
                     handleScanResult(result, result.siswa || null, dateStr, timeStr);
+                    if (result && result.status === 'success') refreshOfflineAttendanceStatus();
                 })
-                .withFailureHandler(function(error) {
+                .withFailureHandler(async function(error) {
                     hideLoading();
-                    showToast("Server Error: " + error.message, "error");
+                    // Network-level failure only. Transaction ID is retained for safe retry after reconnect.
+                    const savedOffline = await queueOfflineAttendance({transactionId, qrId, dateStr, timeStr, operator: currentUser.username, createdAt: new Date().toISOString()});
+                    if (savedOffline) showOfflineQueuedResult(qrId, dateStr, timeStr);
                 })
-                .apiScan(currentUser.sessionToken, qrId, dateStr, timeStr, currentUser.username);
+                .apiScan(currentUser.sessionToken, qrId, dateStr, timeStr, currentUser.username, transactionId);
         }
 
         function handleScanResult(res, siswa, date, time) {
@@ -1793,6 +1806,8 @@
                         hideLoading();
                         if(res.status === 'success'){
                             allStudentsCache = res.data;
+                            refreshOfflineAttendanceStatus();
+                            if (navigator.onLine) setTimeout(() => syncOfflineAttendance(false), 250);
                             populateClassFilters(res.data);
                             renderTableSiswa(res.data);
                             resolve();
@@ -2737,6 +2752,166 @@
                 btn.classList.remove('text-blue-600');
             }
         }
+
+        // === TAHAP OFFLINE QR: antrean lokal IndexedDB, terpisah dari data biometrik ===
+        const OFFLINE_ATTENDANCE_DB = 'ehadir_offline_attendance_v1';
+        const OFFLINE_ATTENDANCE_STORE = 'queue';
+        let offlineSyncRunning = false;
+
+        function createOfflineTransactionId() {
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+            return 'ehadir-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + '-' + Math.random().toString(36).slice(2);
+        }
+
+        function openOfflineAttendanceDB() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) return reject(new Error('Penyimpanan offline tidak didukung browser ini.'));
+                const request = indexedDB.open(OFFLINE_ATTENDANCE_DB, 1);
+                request.onupgradeneeded = () => {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains(OFFLINE_ATTENDANCE_STORE)) db.createObjectStore(OFFLINE_ATTENDANCE_STORE, {keyPath: 'transactionId'});
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error || new Error('Gagal membuka penyimpanan offline.'));
+            });
+        }
+
+        async function offlineQueuePut(item) {
+            const db = await openOfflineAttendanceDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(OFFLINE_ATTENDANCE_STORE, 'readwrite');
+                tx.objectStore(OFFLINE_ATTENDANCE_STORE).put(item);
+                tx.oncomplete = () => { db.close(); resolve(item); };
+                tx.onerror = () => { db.close(); reject(tx.error || new Error('Gagal menyimpan antrean.')); };
+                tx.onabort = () => { db.close(); reject(tx.error || new Error('Penyimpanan antrean dibatalkan.')); };
+            });
+        }
+
+        async function offlineQueueAll() {
+            const db = await openOfflineAttendanceDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(OFFLINE_ATTENDANCE_STORE, 'readonly');
+                const request = tx.objectStore(OFFLINE_ATTENDANCE_STORE).getAll();
+                request.onsuccess = () => resolve(request.result || []);
+                request.onerror = () => reject(request.error || new Error('Gagal membaca antrean.'));
+                tx.oncomplete = () => db.close();
+                tx.onerror = () => { db.close(); reject(tx.error || new Error('Gagal membaca antrean.')); };
+            });
+        }
+
+        async function offlineQueueDelete(transactionId) {
+            const db = await openOfflineAttendanceDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(OFFLINE_ATTENDANCE_STORE, 'readwrite');
+                tx.objectStore(OFFLINE_ATTENDANCE_STORE).delete(transactionId);
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => { db.close(); reject(tx.error || new Error('Gagal memperbarui antrean.')); };
+            });
+        }
+
+        async function queueOfflineAttendance(item) {
+            try {
+                await offlineQueuePut(Object.assign({}, item, {state: 'pending', lastError: ''}));
+                await refreshOfflineAttendanceStatus();
+                showToast('Koneksi terputus. Absensi disimpan di perangkat dan menunggu sinkronisasi.', 'info');
+                return true;
+            } catch (error) {
+                showToast('GAGAL MENYIMPAN OFFLINE: ' + (error.message || error) + '. Jangan anggap absensi tersimpan; periksa koneksi dan ulangi scan.', 'error');
+                console.error('Offline queue save failed', error);
+                return false;
+            }
+        }
+
+        function showOfflineQueuedResult(qrId, dateStr, timeStr) {
+            const idleUI = document.getElementById('scan-idle');
+            const resultUI = document.getElementById('scan-result');
+            const icon = document.getElementById('result-icon');
+            const title = document.getElementById('result-title');
+            if (idleUI) idleUI.classList.add('hidden');
+            if (resultUI) { resultUI.classList.remove('hidden'); resultUI.classList.add('flex'); }
+            if (icon) { icon.className = 'w-24 h-24 rounded-full flex items-center justify-center text-5xl text-white mb-6 shadow-2xl bg-amber-500'; icon.innerHTML = '<i class="fas fa-cloud-arrow-up"></i>'; }
+            if (title) { title.innerText = 'TERSIMPAN OFFLINE'; title.className = 'text-2xl font-black text-amber-600 mb-2 tracking-tight'; }
+            const name = document.getElementById('result-nama'); if (name) name.innerText = 'ID SISWA: ' + qrId;
+            const nis = document.getElementById('result-nis'); if (nis) nis.innerText = '-';
+            const kelas = document.getElementById('result-kelas'); if (kelas) kelas.innerText = '-';
+            const date = document.getElementById('result-tanggal'); if (date) date.innerText = dateStr;
+            const time = document.getElementById('result-waktu'); if (time) time.innerText = timeStr;
+            const status = document.getElementById('result-status'); if (status) { status.innerText = 'MENUNGGU SERVER'; status.className = 'font-black text-sm px-3 py-1 rounded-lg bg-amber-100 text-amber-800'; }
+            if (typeof playVoice === 'function') { /* Tidak mengucapkan "berhasil" sebelum server mengonfirmasi. */ }
+        }
+
+        async function refreshOfflineAttendanceStatus() {
+            const text = document.getElementById('offline-status-text');
+            const dot = document.getElementById('offline-status-dot');
+            const countEl = document.getElementById('offline-pending-count');
+            const button = document.getElementById('offline-sync-button');
+            let items = [];
+            try { items = await offlineQueueAll(); }
+            catch (error) { if (text) text.textContent = 'Penyimpanan offline bermasalah'; if (dot) dot.className = 'inline-block w-2.5 h-2.5 rounded-full bg-red-500'; if (button) button.disabled = true; return; }
+            const pending = items.filter(item => item.state === 'pending').length;
+            const failed = items.filter(item => item.state === 'failed').length;
+            if (countEl) countEl.textContent = 'Antrean: ' + pending + (failed ? ' · Gagal: ' + failed : '');
+            if (text) text.textContent = navigator.onLine ? (pending ? 'Online — menunggu sinkronisasi' : 'Online — koneksi tersedia') : 'Offline — data baru disimpan di perangkat';
+            if (dot) dot.className = 'inline-block w-2.5 h-2.5 rounded-full ' + (navigator.onLine ? 'bg-green-500' : 'bg-amber-500');
+            if (button) button.disabled = !navigator.onLine || !currentUser || !currentUser.sessionToken || (pending + failed) === 0 || offlineSyncRunning;
+        }
+
+        async function syncOfflineAttendance(showMessage) {
+            if (offlineSyncRunning || !navigator.onLine || !currentUser || !currentUser.sessionToken) {
+                await refreshOfflineAttendanceStatus();
+                if (showMessage) showToast(!navigator.onLine ? 'Perangkat masih offline.' : 'Silakan login untuk menyinkronkan antrean.', 'info');
+                return;
+            }
+            offlineSyncRunning = true;
+            await refreshOfflineAttendanceStatus();
+            let synced = 0, duplicates = 0, failed = 0;
+            try {
+                const allQueued = await offlineQueueAll();
+                // Tombol manual mengizinkan percobaan ulang catatan gagal setelah pengguna memeriksa login/koneksi.
+                if (showMessage) {
+                    for (const item of allQueued) { if (item.state === 'failed') { item.state = 'pending'; item.lastError = ''; await offlineQueuePut(item); } }
+                }
+                const items = (await offlineQueueAll()).filter(item => item.state === 'pending').sort((a,b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+                for (const item of items) {
+                    if (!navigator.onLine) break;
+                    let response;
+                    try {
+                        response = await fetch(window.EHADIR_WORKER_API_URL, {
+                            method: 'POST', headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({method: 'apiScan', args: [currentUser.sessionToken, item.qrId, item.dateStr, item.timeStr, item.operator || currentUser.username, item.transactionId]})
+                        });
+                        const result = await response.json();
+                        if (!response.ok && !result.status) throw new Error('HTTP ' + response.status);
+                        if (result.status === 'success') {
+                            await offlineQueueDelete(item.transactionId); synced++;
+                        } else if (result.status === 'error_duplicate') {
+                            // Sudah ada absensi untuk siswa/tanggal tersebut. Hapus dari antrean agar tidak dicoba berulang.
+                            await offlineQueueDelete(item.transactionId); duplicates++;
+                        } else {
+                            item.state = 'failed'; item.lastError = String(result.message || result.status || 'Server menolak absensi');
+                            await offlineQueuePut(item); failed++;
+                        }
+                    } catch (error) {
+                        // Gangguan jaringan: biarkan antrean tetap pending untuk dicoba ulang.
+                        if (item.state === 'pending') { item.lastError = String(error.message || error); await offlineQueuePut(item); }
+                        break;
+                    }
+                }
+            } catch (error) {
+                showToast('Sinkronisasi belum selesai: ' + (error.message || error), 'error');
+            } finally {
+                offlineSyncRunning = false;
+                await refreshOfflineAttendanceStatus();
+            }
+            if (showMessage || synced || duplicates || failed) {
+                let msg = 'Sinkronisasi selesai. Berhasil: ' + synced + ', sudah tercatat/duplikat: ' + duplicates + ', perlu pemeriksaan: ' + failed + '.';
+                showToast(msg, failed ? 'error' : (synced ? 'success' : 'info'));
+            }
+        }
+
+        window.addEventListener('online', () => { refreshOfflineAttendanceStatus(); syncOfflineAttendance(false); });
+        window.addEventListener('offline', refreshOfflineAttendanceStatus);
+        window.addEventListener('load', () => { refreshOfflineAttendanceStatus(); });
 
         function playVoice(text) {
             if(!isSoundEnabled || !('speechSynthesis' in window)) return;
