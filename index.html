@@ -2885,10 +2885,23 @@
                         if (result.status === 'success') {
                             await offlineQueueDelete(item.transactionId); synced++;
                         } else if (result.status === 'error_duplicate') {
-                            // Sudah ada absensi untuk siswa/tanggal tersebut. Hapus dari antrean agar tidak dicoba berulang.
+                            // Server memastikan siswa sudah tercatat pada tanggal ini.
+                            // Hapus antrean agar tidak dikirim berulang.
                             await offlineQueueDelete(item.transactionId); duplicates++;
+                        } else if (
+                            response.status >= 500 ||
+                            /Gagal menghubungi Apps Script|Respons Apps Script bukan JSON|Failed to fetch|NetworkError|fetch failed|temporar|sementara|timed out|timeout|try again/i.test(String(result.message || ''))
+                        ) {
+                            // Gangguan sementara di Worker/Apps Script bukan penolakan permanen.
+                            // Pertahankan state pending agar aman dicoba ulang tanpa membuat ID transaksi baru.
+                            item.state = 'pending';
+                            item.lastError = String(result.message || ('Gangguan sementara HTTP ' + response.status));
+                            await offlineQueuePut(item);
+                            break;
                         } else {
-                            item.state = 'failed'; item.lastError = String(result.message || result.status || 'Server menolak absensi');
+                            // Kesalahan validasi/otorisasi perlu pemeriksaan; jangan menghapus data lokal.
+                            item.state = 'failed';
+                            item.lastError = String(result.message || result.status || 'Server menolak absensi');
                             await offlineQueuePut(item); failed++;
                         }
                     } catch (error) {
