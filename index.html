@@ -456,9 +456,17 @@
 
                             <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 md:p-6">
                                 <h3 class="text-lg font-extrabold text-slate-800"><i class="fas fa-user-check text-blue-600 mr-2"></i>Verifikasi dan Absensi</h3>
-                                <p class="text-sm text-slate-500 mt-1">Hasil cocok hanya kandidat; periksa siswa secara langsung sebelum mencatat kehadiran.</p>
-                                <button type="button" onclick="faceVerifyStudent()" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl">
-                                    <i class="fas fa-magnifying-glass mr-2"></i>Verifikasi Wajah
+                                <p class="text-sm text-slate-500 mt-1">Scan otomatis mencari kandidat; absensi hanya dicatat setelah guru memeriksa identitas dan menekan konfirmasi.</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                    <button type="button" id="face-auto-start" onclick="faceStartAutoScan()" class="bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-3 rounded-xl">
+                                        <i class="fas fa-expand mr-2"></i>Mulai Scan Otomatis
+                                    </button>
+                                    <button type="button" id="face-auto-stop" onclick="faceStopAutoScan()" disabled class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-3 rounded-xl disabled:opacity-40">
+                                        <i class="fas fa-stop mr-2"></i>Hentikan Scan
+                                    </button>
+                                </div>
+                                <button type="button" onclick="faceVerifyStudent()" class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl">
+                                    <i class="fas fa-magnifying-glass mr-2"></i>Verifikasi Wajah Manual
                                 </button>
                                 <button type="button" id="face-attendance-button" onclick="faceRecordAttendance()" disabled class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl">
                                     <i class="fas fa-calendar-check mr-2"></i>Konfirmasi dan Catat Hadir
@@ -2610,6 +2618,9 @@ function biometricDemoDelete(id) {
     let faceMatchedStudent = null;
     let faceLastDescriptor = null;
     let faceBusy = false;
+    let faceAutoScanActive = false;
+    let faceAutoScanTimer = null;
+    let faceAutoScanInFlight = false;
 
     function faceEl(id) { return document.getElementById(id); }
     function faceStatus(id, message, isError) {
@@ -2695,6 +2706,7 @@ function biometricDemoDelete(id) {
         }
     };
     window.faceStopCamera = function () {
+        window.faceStopAutoScan();
         if (faceCameraStream) faceCameraStream.getTracks().forEach(track => track.stop());
         faceCameraStream = null;
         const video = faceEl('face-video');
@@ -2734,6 +2746,88 @@ function biometricDemoDelete(id) {
             faceBusy = false;
         }
     };
+    window.faceStartAutoScan = async function () {
+        if (!faceModelsReady) {
+            faceStatus('face-verify-status', 'Muat model wajah terlebih dahulu.', true);
+            return;
+        }
+        const video = faceEl('face-video');
+        if (!video || !video.srcObject || video.readyState < 2) {
+            faceStatus('face-verify-status', 'Aktifkan kamera terlebih dahulu.', true);
+            return;
+        }
+        if (faceAutoScanActive) return;
+        faceMatchedStudent = null;
+        faceLastDescriptor = null;
+        faceEl('face-attendance-button').disabled = true;
+        faceAutoScanActive = true;
+        faceEl('face-auto-start').disabled = true;
+        faceEl('face-auto-stop').disabled = false;
+        faceStatus('face-verify-status', 'Scan otomatis aktif. Arahkan satu wajah ke kamera. Setelah kandidat ditemukan, periksa identitasnya dan tekan Konfirmasi dan Catat Hadir.', false);
+        faceAutoScanTick();
+    };
+
+    window.faceStopAutoScan = function () {
+        faceAutoScanActive = false;
+        faceAutoScanInFlight = false;
+        if (faceAutoScanTimer) {
+            clearTimeout(faceAutoScanTimer);
+            faceAutoScanTimer = null;
+        }
+        const start = faceEl('face-auto-start');
+        const stop = faceEl('face-auto-stop');
+        if (start) start.disabled = false;
+        if (stop) stop.disabled = true;
+    };
+
+    async function faceAutoScanTick() {
+        if (!faceAutoScanActive || faceAutoScanInFlight) return;
+        faceAutoScanInFlight = true;
+        try {
+            const video = faceEl('face-video');
+            if (!faceModelsReady || !video || !video.srcObject || video.readyState < 2) {
+                throw new Error('Kamera tidak aktif atau model belum siap.');
+            }
+            const detections = await faceapi.detectAllFaces(
+                video,
+                new faceapi.TinyFaceDetectorOptions({inputSize: 320, scoreThreshold: 0.55})
+            ).withFaceLandmarks().withFaceDescriptors();
+
+            if (!faceAutoScanActive) return;
+            if (detections.length > 1) {
+                faceStatus('face-verify-status', 'Terdeteksi lebih dari satu wajah. Pastikan hanya satu siswa di depan kamera.', true);
+            } else if (detections.length === 1) {
+                const descriptor = Array.from(detections[0].descriptor);
+                const result = await faceApiCall('apiFaceVerify', [descriptor]);
+                if (!faceAutoScanActive) return;
+                if (result.match && result.student) {
+                    faceLastDescriptor = descriptor;
+                    faceMatchedStudent = result.student;
+                    faceStatus('face-verify-status',
+                        'KANDIDAT WAJAH DITEMUKAN.\nNama: ' + (result.student.nama || '-') +
+                        '\nKelas: ' + (result.student.kelas || '-') +
+                        '\nJarak: ' + result.distance + ' (ambang ' + result.threshold + ')' +
+                        '\nPeriksa identitas siswa secara langsung, lalu tekan Konfirmasi dan Catat Hadir. Absensi belum dicatat.',
+                        false);
+                    faceEl('face-attendance-button').disabled = false;
+                    window.faceStopAutoScan();
+                    return;
+                } else {
+                    faceStatus('face-verify-status', 'Wajah terlihat, tetapi belum cocok dengan template terdaftar. Posisikan wajah dengan cahaya cukup.', false);
+                }
+            } else {
+                faceStatus('face-verify-status', 'Mencari wajah… Pastikan satu wajah terlihat jelas di kamera.', false);
+            }
+        } catch (err) {
+            if (faceAutoScanActive) {
+                faceStatus('face-verify-status', 'Scan otomatis: ' + err.message, true);
+            }
+        } finally {
+            faceAutoScanInFlight = false;
+            if (faceAutoScanActive) faceAutoScanTimer = setTimeout(faceAutoScanTick, 1100);
+        }
+    }
+
     window.faceVerifyStudent = async function () {
         if (faceBusy) return;
         faceBusy = true;
