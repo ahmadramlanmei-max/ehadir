@@ -282,16 +282,48 @@
           display: flex !important;
           transform: translateX(0) !important;
           visibility: visible !important;
+          opacity: 1 !important;
           pointer-events: auto !important;
+          z-index: 10050 !important;
+          isolation: isolate !important;
         }
+        /* Lapisan gelap hanya dekorasi; tidak boleh menangkap sentuhan menu. */
         body.is-logged-in.sidebar-mobile-open::before {
           content: "" !important;
           position: fixed !important;
           inset: 0 !important;
-          background: rgba(2,6,23,.58) !important;
-          -webkit-backdrop-filter: blur(2px) !important;
-          backdrop-filter: blur(2px) !important;
+          background: rgba(2,6,23,.52) !important;
+          -webkit-backdrop-filter: none !important;
+          backdrop-filter: none !important;
           z-index: 10000 !important;
+          pointer-events: none !important;
+        }
+        body.is-logged-in #app-sidebar.show-mobile,
+        body.is-logged-in #app-sidebar.show-mobile * {
+          opacity: 1 !important;
+          filter: none !important;
+          pointer-events: auto;
+        }
+        body.is-logged-in #app-sidebar.show-mobile > nav .nav-btn {
+          position: relative !important;
+          z-index: 1 !important;
+          display: flex !important;
+          align-items: center !important;
+          color: #e2e8f0 !important;
+          background-color: transparent;
+          cursor: pointer !important;
+          -webkit-tap-highlight-color: rgba(96,165,250,.22) !important;
+        }
+        body.is-logged-in #app-sidebar.show-mobile > nav .nav-btn:hover,
+        body.is-logged-in #app-sidebar.show-mobile > nav .nav-btn:focus-visible {
+          color: #ffffff !important;
+          background-color: #334155 !important;
+          outline: 2px solid rgba(96,165,250,.65) !important;
+          outline-offset: -2px !important;
+        }
+        body.is-logged-in #app-sidebar.show-mobile > nav .nav-btn:active {
+          background-color: #1e40af !important;
+          color: #ffffff !important;
         }
         body.is-logged-in #app-sidebar > div:first-child {
           flex: 0 0 auto !important;
@@ -1455,6 +1487,16 @@
                 : !sidebar.classList.contains('show-mobile');
             sidebar.classList.toggle('show-mobile', shouldOpen);
             document.body.classList.toggle('sidebar-mobile-open', shouldOpen && document.body.classList.contains('is-logged-in'));
+            // Kunci interaksi pada panel terbuka agar tidak tertutup lapisan halaman.
+            if (shouldOpen) {
+                sidebar.style.pointerEvents = 'auto';
+                sidebar.style.visibility = 'visible';
+                sidebar.style.zIndex = '10050';
+            } else {
+                sidebar.style.pointerEvents = '';
+                sidebar.style.visibility = '';
+                sidebar.style.zIndex = '';
+            }
         }
 
         // Tutup sidebar HP dengan mengetuk area gelap atau menekan tombol Escape.
