@@ -2442,7 +2442,61 @@
             `;
 
             printWindow.document.open();
-            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Kartu QR Siswa</title>${links}${styles}<style>${printCss}</style></head><body><main id="print-root"></main></body></html>`);
+            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Kartu QR Siswa</title>${links}${styles}<style>${printCss}</style>
+    <!-- FIX TERARAH: tampilkan kembali logo/identitas E-Hadir pada sidebar tablet. Tidak mengubah JavaScript atau fitur lain. -->
+    <style id="ehadir-tablet-logo-visibility-fix">
+      @media (min-width: 768px) {
+        body.is-logged-in #app-sidebar {
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child {
+          display: flex !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          flex: 0 0 auto !important;
+          min-height: 112px !important;
+          height: auto !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 20px 18px !important;
+          background: #020617 !important;
+          border-bottom: 1px solid #1e293b !important;
+          position: relative !important;
+          z-index: 5 !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child > div,
+        body.is-logged-in #app-sidebar > div:first-child h2,
+        body.is-logged-in #app-sidebar > div:first-child h2 i,
+        body.is-logged-in #app-sidebar > div:first-child #sidebar-role {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          color: #fff !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child h2 {
+          display: flex !important;
+          align-items: center !important;
+          gap: 9px !important;
+          font-size: 1.5rem !important;
+          line-height: 1.25 !important;
+          white-space: nowrap !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child h2 i {
+          display: inline-block !important;
+          color: #3b82f6 !important;
+          flex: 0 0 auto !important;
+        }
+        body.is-logged-in #app-sidebar > div:first-child #sidebar-role {
+          display: inline-block !important;
+          color: #60a5fa !important;
+          margin-top: 4px !important;
+        }
+      }
+    </style>
+</head><body><main id="print-root"></main></body></html>`);
             printWindow.document.close();
 
             const root = printWindow.document.getElementById('print-root');
