@@ -1069,6 +1069,28 @@
                             </div>
                             
                             <div class="pt-2">
+                                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2"><i class="fas fa-calendar-alt mr-2"></i> Semester Aktif</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5" for="set-semester-aktif">Pilih Semester yang Aktif</label>
+                                        <select id="set-semester-aktif" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
+                                            <option value="Ganjil">Semester Ganjil</option>
+                                            <option value="Genap">Semester Genap</option>
+                                        </select>
+                                        <p class="text-xs text-slate-400 font-medium mt-2">Semester yang dipilih berlaku untuk pengaturan sistem sekolah. Hanya administrator yang dapat mengubahnya.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 flex items-center gap-3">
+                                        <i class="fas fa-calendar-check text-2xl text-blue-600"></i>
+                                        <div>
+                                            <p class="text-xs font-bold uppercase tracking-wide text-blue-500">Pilihan Semester</p>
+                                            <p id="semester-aktif-preview" class="text-lg font-extrabold text-blue-900">Semester Ganjil</p>
+                                            <p class="text-xs text-blue-700">Pilihan tersimpan setelah menekan Simpan Pengaturan.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-2">
                                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2"><i class="fas fa-clock mr-2"></i> Aturan Waktu Absensi</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
@@ -2618,11 +2640,24 @@
                         if(s['Password Guru']) document.getElementById('set-pass-guru').value = s['Password Guru'];
                         if(s['Password Wali']) document.getElementById('set-pass-wali').value = s['Password Wali'];
                         if(s['Nama Admin']) document.getElementById('set-nama-admin').value = s['Nama Admin'];
+                        const semesterAktif = String(s['Semester Aktif'] || 'Ganjil').replace(/^'+/, '').trim();
+                        document.getElementById('set-semester-aktif').value = (semesterAktif === 'Genap') ? 'Genap' : 'Ganjil';
+                        updateSemesterAktifPreview();
                     }
                 })
                 .withFailureHandler(function(error) { hideLoading(); })
                 .apiGetSettings(currentUser.sessionToken);
         }
+
+        function updateSemesterAktifPreview() {
+            const select = document.getElementById('set-semester-aktif');
+            const preview = document.getElementById('semester-aktif-preview');
+            if (select && preview) preview.textContent = 'Semester ' + (select.value === 'Genap' ? 'Genap' : 'Ganjil');
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'set-semester-aktif') updateSemesterAktifPreview();
+        });
 
         function submitPengaturan(e) {
             e.preventDefault();
@@ -2633,7 +2668,8 @@
                 'Password Admin': document.getElementById('set-pass-admin').value,
                 'Password Guru': document.getElementById('set-pass-guru').value,
                 'Password Wali': document.getElementById('set-pass-wali').value,
-                'Nama Admin': document.getElementById('set-nama-admin').value
+                'Nama Admin': document.getElementById('set-nama-admin').value,
+                'Semester Aktif': document.getElementById('set-semester-aktif').value
             };
             showLoading("Menyimpan Pengaturan...");
             google.script.run
@@ -2885,23 +2921,10 @@
                         if (result.status === 'success') {
                             await offlineQueueDelete(item.transactionId); synced++;
                         } else if (result.status === 'error_duplicate') {
-                            // Server memastikan siswa sudah tercatat pada tanggal ini.
-                            // Hapus antrean agar tidak dikirim berulang.
+                            // Sudah ada absensi untuk siswa/tanggal tersebut. Hapus dari antrean agar tidak dicoba berulang.
                             await offlineQueueDelete(item.transactionId); duplicates++;
-                        } else if (
-                            response.status >= 500 ||
-                            /Gagal menghubungi Apps Script|Respons Apps Script bukan JSON|Failed to fetch|NetworkError|fetch failed|temporar|sementara|timed out|timeout|try again/i.test(String(result.message || ''))
-                        ) {
-                            // Gangguan sementara di Worker/Apps Script bukan penolakan permanen.
-                            // Pertahankan state pending agar aman dicoba ulang tanpa membuat ID transaksi baru.
-                            item.state = 'pending';
-                            item.lastError = String(result.message || ('Gangguan sementara HTTP ' + response.status));
-                            await offlineQueuePut(item);
-                            break;
                         } else {
-                            // Kesalahan validasi/otorisasi perlu pemeriksaan; jangan menghapus data lokal.
-                            item.state = 'failed';
-                            item.lastError = String(result.message || result.status || 'Server menolak absensi');
+                            item.state = 'failed'; item.lastError = String(result.message || result.status || 'Server menolak absensi');
                             await offlineQueuePut(item); failed++;
                         }
                     } catch (error) {
