@@ -384,6 +384,16 @@
       }
     </style>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- FIX TERARAH: menu yang diberi class hidden untuk akun Wali tetap tersembunyi di sidebar HP. -->
+    <style id="ehadir-wali-mobile-menu-visibility-fix">
+      @media (max-width: 767px) {
+        body.is-logged-in #app-sidebar.show-mobile > nav .nav-btn.hidden {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+      }
+    </style>
 </head>
 <body class="text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
 
