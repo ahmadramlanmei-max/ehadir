@@ -426,6 +426,22 @@
       }
     </style>
 
+    <!-- FIX TERARAH: posisi tanggal dan waktu pada header tablet; tidak mengubah sidebar atau fungsi lain. -->
+    <style id="ehadir-tablet-clock-position-fix">
+      @media (max-width: 1280px) {
+        #clock-date,
+        #clock-time {
+          position: relative !important;
+          top: 5px !important;
+          line-height: 1.35 !important;
+          white-space: nowrap !important;
+        }
+        #clock-date {
+          padding-top: 2px !important;
+        }
+      }
+    </style>
+
 </head>
 <body class="text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
 
@@ -2434,27 +2450,15 @@
             if (logTable) logTable.classList.toggle('hidden', isSummary);
             if (summaryTable) summaryTable.classList.toggle('hidden', !isSummary);
 
-            // Android: stylesheet/font eksternal kadang membuat event load tertahan.
-            // Cetak tetap dijalankan setelah jeda singkat, dengan fallback agar pratinjau tidak menunggu selamanya.
-            let rekapPrintStarted = false;
             const waitForFontsAndPrint = () => {
-                if (rekapPrintStarted || printWindow.closed) return;
-                rekapPrintStarted = true;
                 printWindow.focus();
                 setTimeout(() => {
-                    try {
-                        printWindow.print();
-                        printWindow.onafterprint = () => {
-                            try { printWindow.close(); } catch (e) {}
-                        };
-                    } catch (e) {
-                        showToast('Pratinjau cetak gagal dibuka. Coba gunakan menu Cetak/Bagikan browser.', 'error');
-                    }
-                }, 500);
+                    printWindow.print();
+                    printWindow.onafterprint = () => printWindow.close();
+                }, 350);
             };
             if (printWindow.document.readyState === 'complete') waitForFontsAndPrint();
             else printWindow.addEventListener('load', waitForFontsAndPrint, { once: true });
-            setTimeout(waitForFontsAndPrint, 1800);
         }
 
         function printKartu() {
@@ -2608,36 +2612,17 @@
                 }));
                 try {
                     if (printWindow.document.fonts && printWindow.document.fonts.ready) {
-                        // Jangan biarkan font eksternal menggantung proses cetak di Android.
-                        await Promise.race([
-                            printWindow.document.fonts.ready,
-                            new Promise(resolve => setTimeout(resolve, 1200))
-                        ]);
+                        await printWindow.document.fonts.ready;
                     }
                 } catch (e) {}
-                if (printWindow.closed) return;
                 printWindow.focus();
                 setTimeout(() => {
-                    try {
-                        printWindow.print();
-                        printWindow.onafterprint = () => {
-                            try { printWindow.close(); } catch (e) {}
-                        };
-                    } catch (e) {
-                        showToast('Pratinjau cetak gagal dibuka. Coba gunakan menu Cetak/Bagikan browser.', 'error');
-                    }
+                    printWindow.print();
+                    printWindow.onafterprint = () => printWindow.close();
                 }, 250);
             };
-            let kartuPrintStarted = false;
-            const safePrintWhenReady = () => {
-                if (kartuPrintStarted || printWindow.closed) return;
-                kartuPrintStarted = true;
-                printWhenReady();
-            };
-            if (printWindow.document.readyState === 'complete') safePrintWhenReady();
-            else printWindow.addEventListener('load', safePrintWhenReady, { once: true });
-            // Fallback bila event load tertahan oleh stylesheet eksternal di HP.
-            setTimeout(safePrintWhenReady, 1800);
+            if (printWindow.document.readyState === 'complete') printWhenReady();
+            else printWindow.addEventListener('load', printWhenReady, { once: true });
         }
 
         function submitImport(e) {
