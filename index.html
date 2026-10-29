@@ -394,6 +394,38 @@
         }
       }
     </style>
+
+    <!-- FIX TERARAH: tombol Keluar tetap terlihat pada sidebar tablet; daftar menu yang menggulir. -->
+    <style id="ehadir-tablet-sidebar-logout-fix">
+      @media (min-width: 768px) {
+        body.is-logged-in #app-sidebar {
+          height: 100vh !important;
+          height: 100dvh !important;
+          min-height: 0 !important;
+          max-height: 100vh !important;
+          max-height: 100dvh !important;
+          overflow: hidden !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        body.is-logged-in #app-sidebar > nav {
+          flex: 1 1 0% !important;
+          min-height: 0 !important;
+          height: 0 !important;
+          max-height: 100% !important;
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+          overscroll-behavior: contain !important;
+        }
+        body.is-logged-in #app-sidebar > div:last-child {
+          flex: 0 0 auto !important;
+          position: relative !important;
+          margin-top: auto !important;
+          z-index: 3 !important;
+        }
+      }
+    </style>
+
 </head>
 <body class="text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
 
