@@ -2387,7 +2387,7 @@
                 return;
             }
 
-            // Akun orang tua hanya mencetak tampilan yang telah dibatasi untuk anaknya.
+            // Buka jendela cetak langsung dari klik pengguna agar kompatibel dengan HP/tablet.
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 showToast('Jendela cetak diblokir. Izinkan pop-up untuk aplikasi ini, lalu coba lagi.', 'error');
@@ -2398,51 +2398,7 @@
             const headerCopy = areaCopy.querySelector('#rekap-print-header');
             if (headerCopy) headerCopy.classList.remove('hidden');
 
-            // Salin style dan stylesheet yang digunakan aplikasi agar hasil PDF tetap konsisten.
-            const styles = Array.from(document.querySelectorAll('style'))
-                .map(el => el.outerHTML).join('\n');
-            const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-                .map(el => el.outerHTML).join('\n');
-
-            const printCss = `
-                @page { size: A4 portrait; margin: 8mm; }
-                * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                html, body { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; font-family: Arial, sans-serif !important; overflow: visible !important; }
-                body { display: block !important; }
-                #print-root { display: block !important; width: 100% !important; max-width: 194mm !important; margin: 0 auto !important; padding: 0 !important; overflow: visible !important; }
-                #print-rekap-area { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; background: #fff !important; }
-                #rekap-print-header { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 0 6mm !important; padding: 0 0 3mm !important; border-bottom: 1.5px solid #111 !important; text-align: center !important; }
-                #rekap-print-header h2 { font-size: 15pt !important; margin: 0 0 2mm !important; }
-                #rekap-print-header h3 { font-size: 11pt !important; margin: 0 !important; }
-                #rekap-print-header p { font-size: 9pt !important; margin-top: 2mm !important; }
-                .overflow-x-auto { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: visible !important; }
-                #print-rekap-area table, #print-rekap-area .print-table { display: table !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; }
-                #print-rekap-area table.hidden, #print-rekap-area .hidden { display: none !important; }
-                #print-rekap-area th, #print-rekap-area td { min-width: 0 !important; max-width: 100% !important; border: 1px solid #222 !important; color: #111 !important; padding: 3px 4px !important; font-size: 8pt !important; line-height: 1.25 !important; vertical-align: top !important; white-space: normal !important; overflow-wrap: anywhere !important; word-break: normal !important; }
-                #print-rekap-area th { background: #e2e8f0 !important; font-weight: 700 !important; text-align: center !important; }
-                #print-rekap-area thead { display: table-header-group !important; }
-                #print-rekap-area tfoot { display: table-footer-group !important; }
-                #print-rekap-area tr { break-inside: avoid !important; page-break-inside: avoid !important; }
-                #print-rekap-area .status-badge { background: transparent !important; color: #111 !important; padding: 0 !important; border: 0 !important; }
-                .hidden { display: none !important; }
-                @media print {
-                    html, body, #print-root { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-                    #print-rekap-area { overflow: visible !important; }
-                }
-            `;
-
-            printWindow.document.open();
-            printWindow.document.write(`<!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rekap Absensi Siswa</title>${links}${styles}<style>${printCss}</style></head>
-<body><div id="print-root"></div></body></html>`);
-            printWindow.document.close();
-
-            const root = printWindow.document.getElementById('print-root');
-            root.appendChild(areaCopy);
-
-            // Pilih SATU tabel berdasarkan jenis rekap aktif; jangan cetak log harian
-            // bersama tabel ringkasan bulanan/semester.
+            // Cetak hanya tabel yang sesuai pilihan rekap aktif.
             const logTable = areaCopy.querySelector('#table-rekap-log');
             const summaryTable = areaCopy.querySelector('#table-rekap-summary');
             const rekapType = (document.getElementById('rekap-tipe') || {}).value || 'semua';
@@ -2450,15 +2406,42 @@
             if (logTable) logTable.classList.toggle('hidden', isSummary);
             if (summaryTable) summaryTable.classList.toggle('hidden', !isSummary);
 
-            const waitForFontsAndPrint = () => {
-                printWindow.focus();
-                setTimeout(() => {
+            const printCss = `
+                @page { size: A4 portrait; margin: 8mm; }
+                * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                html, body { margin: 0; padding: 0; width: 100%; background: #fff; color: #111; font-family: Arial, sans-serif; }
+                #print-root { width: 100%; max-width: 194mm; margin: 0 auto; }
+                #print-rekap-area { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; overflow: visible; background: #fff; }
+                #rekap-print-header { display: block; width: 100%; margin: 0 0 6mm; padding: 0 0 3mm; border-bottom: 1.5px solid #111; text-align: center; }
+                #rekap-print-header h2 { font-size: 15pt; margin: 0 0 2mm; }
+                #rekap-print-header h3 { font-size: 11pt; margin: 0; }
+                #rekap-print-header p { font-size: 9pt; margin-top: 2mm; }
+                .overflow-x-auto { display: block; width: 100%; overflow: visible; }
+                #print-rekap-area table, #print-rekap-area .print-table { display: table; width: 100%; min-width: 0; max-width: 100%; margin: 0; border-collapse: collapse; table-layout: auto; }
+                #print-rekap-area table.hidden, #print-rekap-area .hidden, .hidden { display: none !important; }
+                #print-rekap-area th, #print-rekap-area td { border: 1px solid #222; color: #111; padding: 3px 4px; font-size: 8pt; line-height: 1.25; vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+                #print-rekap-area th { background: #e2e8f0; font-weight: 700; text-align: center; }
+                #print-rekap-area thead { display: table-header-group; }
+                #print-rekap-area tfoot { display: table-footer-group; }
+                #print-rekap-area tr { break-inside: avoid; page-break-inside: avoid; }
+                #print-rekap-area .status-badge { background: transparent; color: #111; padding: 0; border: 0; }
+            `;
+
+            printWindow.document.open();
+            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Rekap Absensi Siswa</title><style>${printCss}</style></head><body><main id="print-root"></main></body></html>`);
+            printWindow.document.close();
+            printWindow.document.getElementById('print-root').appendChild(areaCopy);
+
+            // Pemanggilan cetak satu kali; tidak menunggu stylesheet/font eksternal yang dapat macet di Android.
+            setTimeout(() => {
+                try {
+                    printWindow.focus();
                     printWindow.print();
-                    printWindow.onafterprint = () => printWindow.close();
-                }, 350);
-            };
-            if (printWindow.document.readyState === 'complete') waitForFontsAndPrint();
-            else printWindow.addEventListener('load', waitForFontsAndPrint, { once: true });
+                } catch (err) {
+                    showToast('Pratinjau cetak gagal dibuka. Coba izinkan pop-up lalu ulangi.', 'error');
+                }
+            }, 250);
+            printWindow.onafterprint = () => { try { printWindow.close(); } catch (e) {} };
         }
 
         function printKartu() {
@@ -2468,161 +2451,74 @@
                 return;
             }
 
-            // Cetak hanya kartu, bukan halaman aplikasi/sidebar/menu.
+            // Buka jendela cetak langsung dari klik pengguna agar bekerja pada HP dan tablet.
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 showToast('Jendela cetak diblokir. Izinkan pop-up untuk aplikasi ini, lalu coba lagi.', 'error');
                 return;
             }
 
-            // Salin kartu sambil mengubah QR canvas menjadi gambar PNG mandiri.
-            // cloneNode() tidak menyalin isi canvas; ini penyebab QR bisa hilang pada Android.
             const cards = Array.from(sourceArea.querySelectorAll('.print-card')).map(card => {
                 const cardCopy = card.cloneNode(true);
                 const sourceQr = card.querySelector('[id^="qr-"]');
                 const targetQr = cardCopy.querySelector('[id^="qr-"]');
                 if (sourceQr && targetQr) {
                     let qrSrc = '';
-                    const sourceCanvas = sourceQr.querySelector('canvas');
-                    const sourceImage = sourceQr.querySelector('img');
                     try {
-                        if (sourceCanvas && sourceCanvas.width && sourceCanvas.height) {
-                            qrSrc = sourceCanvas.toDataURL('image/png');
-                        } else if (sourceImage && sourceImage.src) {
-                            qrSrc = sourceImage.src;
-                        }
-                    } catch (err) {
-                        console.warn('QR tidak dapat dikonversi menjadi gambar:', err);
-                    }
+                        const canvas = sourceQr.querySelector('canvas');
+                        const image = sourceQr.querySelector('img');
+                        if (canvas && canvas.width && canvas.height) qrSrc = canvas.toDataURL('image/png');
+                        else if (image && image.src) qrSrc = image.src;
+                    } catch (err) { console.warn('QR tidak dapat dikonversi menjadi gambar:', err); }
                     if (qrSrc) {
                         targetQr.innerHTML = '';
-                        const printableQr = document.createElement('img');
-                        printableQr.src = qrSrc;
-                        printableQr.alt = 'QR Code siswa';
-                        printableQr.style.width = '16mm';
-                        printableQr.style.height = '16mm';
-                        printableQr.style.maxWidth = '16mm';
-                        printableQr.style.maxHeight = '16mm';
-                        printableQr.style.objectFit = 'contain';
-                        printableQr.decoding = 'sync';
-                        targetQr.appendChild(printableQr);
+                        const qrImage = document.createElement('img');
+                        qrImage.src = qrSrc;
+                        qrImage.alt = 'QR Code siswa';
+                        qrImage.style.cssText = 'display:block;width:16mm;height:16mm;object-fit:contain';
+                        targetQr.appendChild(qrImage);
                     }
                 }
                 return cardCopy;
             });
-            const styles = Array.from(document.querySelectorAll('style')).map(el => el.outerHTML).join('\\n');
-            const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(el => el.outerHTML).join('\\n');
 
             const printCss = `
                 @page { size: A4 portrait; margin: 8mm; }
-                * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; background: #fff !important; font-family: Arial, sans-serif !important; }
-                body { display: block !important; overflow: visible !important; }
-                #print-root { display: grid !important; grid-template-columns: repeat(2, 82mm) !important; grid-auto-rows: 49mm !important; column-gap: 4mm !important; row-gap: 4mm !important; justify-content: center !important; align-content: start !important; width: 100% !important; max-width: 194mm !important; margin: 0 auto !important; padding: 0 1mm !important; overflow: visible !important; }
-                .print-card { display: flex !important; position: relative !important; width: 82mm !important; min-width: 0 !important; max-width: 82mm !important; height: 49mm !important; min-height: 49mm !important; max-height: 49mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; border: 0.3mm solid #cbd5e1 !important; border-radius: 3mm !important; box-shadow: none !important; transform: none !important; break-inside: avoid !important; page-break-inside: avoid !important; }
-                .print-card > div:first-child { width: 20mm !important; min-width: 20mm !important; max-width: 20mm !important; padding: 2mm !important; }
-                .print-card > div:nth-child(2) { min-width: 0 !important; flex: 1 1 0 !important; padding: 2.5mm !important; overflow: hidden !important; }
-                .print-card h4 { font-size: 8pt !important; line-height: 1.15 !important; white-space: normal !important; overflow: hidden !important; }
-                .print-card p { font-size: 6.5pt !important; line-height: 1.2 !important; }
-                .print-card [id^="qr-"] { width: 16mm !important; height: 16mm !important; max-width: 16mm !important; max-height: 16mm !important; overflow: hidden !important; flex: 0 0 16mm !important; }
-                .print-card img { display: block !important; width: 16mm !important; height: 16mm !important; max-width: 16mm !important; max-height: 16mm !important; object-fit: contain !important; }
-                .print-card canvas { width: 16mm !important; height: 16mm !important; max-width: 16mm !important; max-height: 16mm !important; }
-                .print-card svg { max-width: 16mm !important; max-height: 16mm !important; }
-                .print-card .fa-qrcode { opacity: .12 !important; }
-                @media print {
-                    html, body { width: 100% !important; max-width: 100% !important; }
-                    #print-root { width: 100% !important; max-width: 194mm !important; }
-                    .print-card, .print-card * { break-inside: avoid !important; page-break-inside: avoid !important; }
-                }
+                * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                html, body { margin: 0; padding: 0; width: 100%; background: #fff; font-family: Arial, sans-serif; }
+                #print-root { display: grid; grid-template-columns: repeat(2, 82mm); grid-auto-rows: 49mm; gap: 4mm; justify-content: center; align-content: start; width: 100%; max-width: 194mm; margin: 0 auto; padding: 0 1mm; }
+                .print-card { display: flex; position: relative; width: 82mm; height: 49mm; margin: 0; padding: 0; overflow: hidden; border: .3mm solid #cbd5e1; border-radius: 3mm; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+                .print-card > div:first-child { width: 20mm; min-width: 20mm; padding: 2mm; background: #1d4ed8; color: #fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+                .print-card > div:nth-child(2) { min-width: 0; flex: 1; padding: 2.5mm; overflow: hidden; background: #f8fafc; display:flex; flex-direction:column; justify-content:space-between; }
+                .print-card h4 { margin: 0 0 1.5mm; font-size: 8pt; line-height: 1.15; font-weight: 700; overflow-wrap: anywhere; }
+                .print-card p { margin: 1mm 0; font-size: 6.5pt; line-height: 1.2; }
+                .print-card [id^="qr-"] { width: 16mm; height: 16mm; max-width: 16mm; max-height: 16mm; overflow: hidden; }
+                .print-card img { display:block; width:16mm; height:16mm; object-fit:contain; }
+                .print-card * { break-inside: avoid; page-break-inside: avoid; }
             `;
 
             printWindow.document.open();
-            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Kartu QR Siswa</title>${links}${styles}<style>${printCss}</style>
-    <!-- FIX TERARAH: tampilkan kembali logo/identitas E-Hadir pada sidebar tablet. Tidak mengubah JavaScript atau fitur lain. -->
-    <style id="ehadir-tablet-logo-visibility-fix">
-      @media (min-width: 768px) {
-        body.is-logged-in #app-sidebar {
-          display: flex !important;
-          flex-direction: column !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child {
-          display: flex !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-          flex: 0 0 auto !important;
-          min-height: 112px !important;
-          height: auto !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          align-items: center !important;
-          justify-content: space-between !important;
-          padding: 20px 18px !important;
-          background: #020617 !important;
-          border-bottom: 1px solid #1e293b !important;
-          position: relative !important;
-          z-index: 5 !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child > div,
-        body.is-logged-in #app-sidebar > div:first-child h2,
-        body.is-logged-in #app-sidebar > div:first-child h2 i,
-        body.is-logged-in #app-sidebar > div:first-child #sidebar-role {
-          display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-          color: #fff !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child h2 {
-          display: flex !important;
-          align-items: center !important;
-          gap: 9px !important;
-          font-size: 1.5rem !important;
-          line-height: 1.25 !important;
-          white-space: nowrap !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child h2 i {
-          display: inline-block !important;
-          color: #3b82f6 !important;
-          flex: 0 0 auto !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child #sidebar-role {
-          display: inline-block !important;
-          color: #60a5fa !important;
-          margin-top: 4px !important;
-        }
-      }
-    </style>
-</head><body><main id="print-root"></main></body></html>`);
+            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Kartu QR Siswa</title><style>${printCss}</style></head><body><main id="print-root"></main></body></html>`);
             printWindow.document.close();
-
             const root = printWindow.document.getElementById('print-root');
             cards.forEach(card => root.appendChild(card));
 
-            const printWhenReady = async () => {
-                // Tunggu semua QR image selesai dimuat sebelum membuka dialog cetak.
-                const images = Array.from(root.querySelectorAll('img'));
-                await Promise.all(images.map(img => {
-                    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-                    return new Promise(resolve => {
-                        const finish = () => resolve();
-                        img.addEventListener('load', finish, { once: true });
-                        img.addEventListener('error', finish, { once: true });
-                        // Fallback untuk browser Android yang tidak mengirim event gambar.
-                        setTimeout(finish, 2500);
-                    });
-                }));
+            // Tunggu gambar QR (jika ada) dengan batas waktu, lalu panggil pratinjau sekali.
+            const images = Array.from(root.querySelectorAll('img'));
+            Promise.race([
+                Promise.all(images.map(img => img.complete ? Promise.resolve() : new Promise(resolve => {
+                    img.onload = resolve; img.onerror = resolve;
+                }))),
+                new Promise(resolve => setTimeout(resolve, 700))
+            ]).then(() => setTimeout(() => {
                 try {
-                    if (printWindow.document.fonts && printWindow.document.fonts.ready) {
-                        await printWindow.document.fonts.ready;
-                    }
-                } catch (e) {}
-                printWindow.focus();
-                setTimeout(() => {
+                    printWindow.focus();
                     printWindow.print();
-                    printWindow.onafterprint = () => printWindow.close();
-                }, 250);
-            };
-            if (printWindow.document.readyState === 'complete') printWhenReady();
-            else printWindow.addEventListener('load', printWhenReady, { once: true });
+                } catch (err) {
+                    showToast('Pratinjau cetak gagal dibuka. Coba izinkan pop-up lalu ulangi.', 'error');
+                }
+            }, 150));
+            printWindow.onafterprint = () => { try { printWindow.close(); } catch (e) {} };
         }
 
         function submitImport(e) {
