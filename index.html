@@ -384,6 +384,64 @@
       }
     </style>
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- FIX TERARAH: menu yang diberi class hidden untuk akun Wali tetap tersembunyi di sidebar HP. -->
+    <style id="ehadir-wali-mobile-menu-visibility-fix">
+      @media (max-width: 767px) {
+        body.is-logged-in #app-sidebar.show-mobile > nav .nav-btn.hidden {
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }
+      }
+    </style>
+
+    <!-- FIX TERARAH: tombol Keluar tetap terlihat pada sidebar tablet; daftar menu yang menggulir. -->
+    <style id="ehadir-tablet-sidebar-logout-fix">
+      @media (min-width: 768px) {
+        body.is-logged-in #app-sidebar {
+          height: 100vh !important;
+          height: 100dvh !important;
+          min-height: 0 !important;
+          max-height: 100vh !important;
+          max-height: 100dvh !important;
+          overflow: hidden !important;
+          display: flex !important;
+          flex-direction: column !important;
+        }
+        body.is-logged-in #app-sidebar > nav {
+          flex: 1 1 0% !important;
+          min-height: 0 !important;
+          height: 0 !important;
+          max-height: 100% !important;
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+          overscroll-behavior: contain !important;
+        }
+        body.is-logged-in #app-sidebar > div:last-child {
+          flex: 0 0 auto !important;
+          position: relative !important;
+          margin-top: auto !important;
+          z-index: 3 !important;
+        }
+      }
+    </style>
+
+    <!-- FIX TERARAH: posisi tanggal dan waktu pada header tablet; tidak mengubah sidebar atau fungsi lain. -->
+    <style id="ehadir-tablet-clock-position-fix">
+      @media (max-width: 1280px) {
+        #clock-date,
+        #clock-time {
+          position: relative !important;
+          top: 5px !important;
+          line-height: 1.35 !important;
+          white-space: nowrap !important;
+        }
+        #clock-date {
+          padding-top: 2px !important;
+        }
+      }
+    </style>
+
 </head>
 <body class="text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
 
@@ -1064,6 +1122,28 @@
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 mb-1.5">Sandi Akun (wali murid)</label>
                                         <input type="text" id="set-pass-wali" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="pt-2">
+                                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2"><i class="fas fa-calendar-alt mr-2"></i> Semester Aktif</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5" for="set-semester-aktif">Pilih Semester yang Aktif</label>
+                                        <select id="set-semester-aktif" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
+                                            <option value="Ganjil">Semester Ganjil</option>
+                                            <option value="Genap">Semester Genap</option>
+                                        </select>
+                                        <p class="text-xs text-slate-400 font-medium mt-2">Semester yang dipilih berlaku untuk pengaturan sistem sekolah. Hanya administrator yang dapat mengubahnya.</p>
+                                    </div>
+                                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4 flex items-center gap-3">
+                                        <i class="fas fa-calendar-check text-2xl text-blue-600"></i>
+                                        <div>
+                                            <p class="text-xs font-bold uppercase tracking-wide text-blue-500">Pilihan Semester</p>
+                                            <p id="semester-aktif-preview" class="text-lg font-extrabold text-blue-900">Semester Ganjil</p>
+                                            <p class="text-xs text-blue-700">Pilihan tersimpan setelah menekan Simpan Pengaturan.</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -2307,7 +2387,7 @@
                 return;
             }
 
-            // Akun orang tua hanya mencetak tampilan yang telah dibatasi untuk anaknya.
+            // Pertahankan data yang sudah difilter pada halaman, termasuk batasan akun orang tua.
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 showToast('Jendela cetak diblokir. Izinkan pop-up untuk aplikasi ini, lalu coba lagi.', 'error');
@@ -2318,16 +2398,37 @@
             const headerCopy = areaCopy.querySelector('#rekap-print-header');
             if (headerCopy) headerCopy.classList.remove('hidden');
 
-            // Salin style dan stylesheet yang digunakan aplikasi agar hasil PDF tetap konsisten.
-            const styles = Array.from(document.querySelectorAll('style'))
-                .map(el => el.outerHTML).join('\n');
-            const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-                .map(el => el.outerHTML).join('\n');
+            // Pilih tabel yang sesuai dengan jenis rekap aktif, tanpa mengubah tampilan halaman utama.
+            const logTable = areaCopy.querySelector('#table-rekap-log');
+            const summaryTable = areaCopy.querySelector('#table-rekap-summary');
+            const rekapType = (document.getElementById('rekap-tipe') || {}).value || 'semua';
+            const isSummary = rekapType === 'bulanan' || rekapType === 'semester';
+            if (logTable) logTable.classList.toggle('hidden', isSummary);
+            if (summaryTable) summaryTable.classList.toggle('hidden', !isSummary);
+
+            // Bawa gaya elemen yang sedang tampil ke salinan cetak tanpa memuat ulang CDN/font eksternal.
+            const copyComputedStyles = (source, target) => {
+                try {
+                    const computed = window.getComputedStyle(source);
+                    let inline = '';
+                    for (let i = 0; i < computed.length; i++) {
+                        const property = computed[i];
+                        inline += `${property}:${computed.getPropertyValue(property)};`;
+                    }
+                    target.style.cssText += ';' + inline;
+                } catch (e) {}
+                const sourceChildren = source.children || [];
+                const targetChildren = target.children || [];
+                for (let i = 0; i < Math.min(sourceChildren.length, targetChildren.length); i++) {
+                    copyComputedStyles(sourceChildren[i], targetChildren[i]);
+                }
+            };
+            copyComputedStyles(sourceArea, areaCopy);
 
             const printCss = `
                 @page { size: A4 portrait; margin: 8mm; }
-                * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                html, body { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; font-family: Arial, sans-serif !important; overflow: visible !important; }
+                *, *::before, *::after { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                html, body { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-family: Arial, sans-serif !important; overflow: visible !important; }
                 body { display: block !important; }
                 #print-root { display: block !important; width: 100% !important; max-width: 194mm !important; margin: 0 auto !important; padding: 0 !important; overflow: visible !important; }
                 #print-rekap-area { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; background: #fff !important; }
@@ -2337,48 +2438,32 @@
                 #rekap-print-header p { font-size: 9pt !important; margin-top: 2mm !important; }
                 .overflow-x-auto { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: visible !important; }
                 #print-rekap-area table, #print-rekap-area .print-table { display: table !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; }
-                #print-rekap-area table.hidden, #print-rekap-area .hidden { display: none !important; }
+                #print-rekap-area table.hidden, #print-rekap-area .hidden, .hidden { display: none !important; }
                 #print-rekap-area th, #print-rekap-area td { min-width: 0 !important; max-width: 100% !important; border: 1px solid #222 !important; color: #111 !important; padding: 3px 4px !important; font-size: 8pt !important; line-height: 1.25 !important; vertical-align: top !important; white-space: normal !important; overflow-wrap: anywhere !important; word-break: normal !important; }
                 #print-rekap-area th { background: #e2e8f0 !important; font-weight: 700 !important; text-align: center !important; }
                 #print-rekap-area thead { display: table-header-group !important; }
                 #print-rekap-area tfoot { display: table-footer-group !important; }
                 #print-rekap-area tr { break-inside: avoid !important; page-break-inside: avoid !important; }
                 #print-rekap-area .status-badge { background: transparent !important; color: #111 !important; padding: 0 !important; border: 0 !important; }
-                .hidden { display: none !important; }
-                @media print {
-                    html, body, #print-root { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
-                    #print-rekap-area { overflow: visible !important; }
-                }
             `;
 
             printWindow.document.open();
-            printWindow.document.write(`<!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rekap Absensi Siswa</title>${links}${styles}<style>${printCss}</style></head>
-<body><div id="print-root"></div></body></html>`);
+            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Rekap Absensi Siswa</title><style>${printCss}</style></head><body><main id="print-root"></main></body></html>`);
             printWindow.document.close();
-
             const root = printWindow.document.getElementById('print-root');
             root.appendChild(areaCopy);
 
-            // Pilih SATU tabel berdasarkan jenis rekap aktif; jangan cetak log harian
-            // bersama tabel ringkasan bulanan/semester.
-            const logTable = areaCopy.querySelector('#table-rekap-log');
-            const summaryTable = areaCopy.querySelector('#table-rekap-summary');
-            const rekapType = (document.getElementById('rekap-tipe') || {}).value || 'semua';
-            const isSummary = rekapType === 'bulanan' || rekapType === 'semester';
-            if (logTable) logTable.classList.toggle('hidden', isSummary);
-            if (summaryTable) summaryTable.classList.toggle('hidden', !isSummary);
-
-            const waitForFontsAndPrint = () => {
-                printWindow.focus();
-                setTimeout(() => {
+            // Jadwalkan cetak setelah DOM salinan terpasang; tidak menunggu font/CDN yang bisa macet di Android.
+            const triggerPrint = () => {
+                try {
+                    printWindow.focus();
                     printWindow.print();
-                    printWindow.onafterprint = () => printWindow.close();
-                }, 350);
+                } catch (err) {
+                    showToast('Pratinjau cetak gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error');
+                }
             };
-            if (printWindow.document.readyState === 'complete') waitForFontsAndPrint();
-            else printWindow.addEventListener('load', waitForFontsAndPrint, { once: true });
+            printWindow.onafterprint = () => { try { printWindow.close(); } catch (e) {} };
+            setTimeout(triggerPrint, 500);
         }
 
         function printKartu() {
@@ -2388,15 +2473,14 @@
                 return;
             }
 
-            // Cetak hanya kartu, bukan halaman aplikasi/sidebar/menu.
+            // Jendela cetak dibuka langsung dari klik pengguna agar kompatibel dengan browser HP/tablet.
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 showToast('Jendela cetak diblokir. Izinkan pop-up untuk aplikasi ini, lalu coba lagi.', 'error');
                 return;
             }
 
-            // Salin kartu sambil mengubah QR canvas menjadi gambar PNG mandiri.
-            // cloneNode() tidak menyalin isi canvas; ini penyebab QR bisa hilang pada Android.
+            // Salin kartu dan ubah QR canvas menjadi gambar PNG agar QR tidak hilang pada hasil cetak.
             const cards = Array.from(sourceArea.querySelectorAll('.print-card')).map(card => {
                 const cardCopy = card.cloneNode(true);
                 const sourceQr = card.querySelector('[id^="qr-"]');
@@ -2406,36 +2490,40 @@
                     const sourceCanvas = sourceQr.querySelector('canvas');
                     const sourceImage = sourceQr.querySelector('img');
                     try {
-                        if (sourceCanvas && sourceCanvas.width && sourceCanvas.height) {
-                            qrSrc = sourceCanvas.toDataURL('image/png');
-                        } else if (sourceImage && sourceImage.src) {
-                            qrSrc = sourceImage.src;
-                        }
-                    } catch (err) {
-                        console.warn('QR tidak dapat dikonversi menjadi gambar:', err);
-                    }
+                        if (sourceCanvas && sourceCanvas.width && sourceCanvas.height) qrSrc = sourceCanvas.toDataURL('image/png');
+                        else if (sourceImage && sourceImage.src) qrSrc = sourceImage.src;
+                    } catch (err) { console.warn('QR tidak dapat dikonversi menjadi gambar:', err); }
                     if (qrSrc) {
                         targetQr.innerHTML = '';
                         const printableQr = document.createElement('img');
                         printableQr.src = qrSrc;
                         printableQr.alt = 'QR Code siswa';
-                        printableQr.style.width = '16mm';
-                        printableQr.style.height = '16mm';
-                        printableQr.style.maxWidth = '16mm';
-                        printableQr.style.maxHeight = '16mm';
-                        printableQr.style.objectFit = 'contain';
-                        printableQr.decoding = 'sync';
+                        printableQr.style.cssText = 'width:16mm;height:16mm;max-width:16mm;max-height:16mm;object-fit:contain;';
                         targetQr.appendChild(printableQr);
                     }
                 }
+                // Pertahankan gaya visual kartu dari halaman aktif tanpa meminta stylesheet eksternal dimuat ulang.
+                const copyComputedStyles = (source, target) => {
+                    try {
+                        const computed = window.getComputedStyle(source);
+                        let inline = '';
+                        for (let i = 0; i < computed.length; i++) {
+                            const property = computed[i];
+                            inline += `${property}:${computed.getPropertyValue(property)};`;
+                        }
+                        target.style.cssText += ';' + inline;
+                    } catch (e) {}
+                    const sourceChildren = source.children || [];
+                    const targetChildren = target.children || [];
+                    for (let i = 0; i < Math.min(sourceChildren.length, targetChildren.length); i++) copyComputedStyles(sourceChildren[i], targetChildren[i]);
+                };
+                copyComputedStyles(card, cardCopy);
                 return cardCopy;
             });
-            const styles = Array.from(document.querySelectorAll('style')).map(el => el.outerHTML).join('\\n');
-            const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(el => el.outerHTML).join('\\n');
 
             const printCss = `
                 @page { size: A4 portrait; margin: 8mm; }
-                * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                *, *::before, *::after { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                 html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; background: #fff !important; font-family: Arial, sans-serif !important; }
                 body { display: block !important; overflow: visible !important; }
                 #print-root { display: grid !important; grid-template-columns: repeat(2, 82mm) !important; grid-auto-rows: 49mm !important; column-gap: 4mm !important; row-gap: 4mm !important; justify-content: center !important; align-content: start !important; width: 100% !important; max-width: 194mm !important; margin: 0 auto !important; padding: 0 1mm !important; overflow: visible !important; }
@@ -2448,101 +2536,25 @@
                 .print-card img { display: block !important; width: 16mm !important; height: 16mm !important; max-width: 16mm !important; max-height: 16mm !important; object-fit: contain !important; }
                 .print-card canvas { width: 16mm !important; height: 16mm !important; max-width: 16mm !important; max-height: 16mm !important; }
                 .print-card svg { max-width: 16mm !important; max-height: 16mm !important; }
-                .print-card .fa-qrcode { opacity: .12 !important; }
-                @media print {
-                    html, body { width: 100% !important; max-width: 100% !important; }
-                    #print-root { width: 100% !important; max-width: 194mm !important; }
-                    .print-card, .print-card * { break-inside: avoid !important; page-break-inside: avoid !important; }
-                }
+                @media print { html, body { width: 100% !important; max-width: 100% !important; } #print-root { width: 100% !important; max-width: 194mm !important; } .print-card, .print-card * { break-inside: avoid !important; page-break-inside: avoid !important; } }
             `;
 
             printWindow.document.open();
-            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Kartu QR Siswa</title>${links}${styles}<style>${printCss}</style>
-    <!-- FIX TERARAH: tampilkan kembali logo/identitas E-Hadir pada sidebar tablet. Tidak mengubah JavaScript atau fitur lain. -->
-    <style id="ehadir-tablet-logo-visibility-fix">
-      @media (min-width: 768px) {
-        body.is-logged-in #app-sidebar {
-          display: flex !important;
-          flex-direction: column !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child {
-          display: flex !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-          flex: 0 0 auto !important;
-          min-height: 112px !important;
-          height: auto !important;
-          width: 100% !important;
-          box-sizing: border-box !important;
-          align-items: center !important;
-          justify-content: space-between !important;
-          padding: 20px 18px !important;
-          background: #020617 !important;
-          border-bottom: 1px solid #1e293b !important;
-          position: relative !important;
-          z-index: 5 !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child > div,
-        body.is-logged-in #app-sidebar > div:first-child h2,
-        body.is-logged-in #app-sidebar > div:first-child h2 i,
-        body.is-logged-in #app-sidebar > div:first-child #sidebar-role {
-          display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-          color: #fff !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child h2 {
-          display: flex !important;
-          align-items: center !important;
-          gap: 9px !important;
-          font-size: 1.5rem !important;
-          line-height: 1.25 !important;
-          white-space: nowrap !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child h2 i {
-          display: inline-block !important;
-          color: #3b82f6 !important;
-          flex: 0 0 auto !important;
-        }
-        body.is-logged-in #app-sidebar > div:first-child #sidebar-role {
-          display: inline-block !important;
-          color: #60a5fa !important;
-          margin-top: 4px !important;
-        }
-      }
-    </style>
-</head><body><main id="print-root"></main></body></html>`);
+            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Cetak Kartu QR Siswa</title><style>${printCss}</style></head><body><main id="print-root"></main></body></html>`);
             printWindow.document.close();
-
             const root = printWindow.document.getElementById('print-root');
             cards.forEach(card => root.appendChild(card));
 
-            const printWhenReady = async () => {
-                // Tunggu semua QR image selesai dimuat sebelum membuka dialog cetak.
-                const images = Array.from(root.querySelectorAll('img'));
-                await Promise.all(images.map(img => {
-                    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-                    return new Promise(resolve => {
-                        const finish = () => resolve();
-                        img.addEventListener('load', finish, { once: true });
-                        img.addEventListener('error', finish, { once: true });
-                        // Fallback untuk browser Android yang tidak mengirim event gambar.
-                        setTimeout(finish, 2500);
-                    });
-                }));
+            // Gambar QR berasal dari data lokal; jangan menunggu font atau CDN eksternal.
+            printWindow.onafterprint = () => { try { printWindow.close(); } catch (e) {} };
+            setTimeout(() => {
                 try {
-                    if (printWindow.document.fonts && printWindow.document.fonts.ready) {
-                        await printWindow.document.fonts.ready;
-                    }
-                } catch (e) {}
-                printWindow.focus();
-                setTimeout(() => {
+                    printWindow.focus();
                     printWindow.print();
-                    printWindow.onafterprint = () => printWindow.close();
-                }, 250);
-            };
-            if (printWindow.document.readyState === 'complete') printWhenReady();
-            else printWindow.addEventListener('load', printWhenReady, { once: true });
+                } catch (err) {
+                    showToast('Pratinjau kartu gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error');
+                }
+            }, 500);
         }
 
         function submitImport(e) {
@@ -2618,11 +2630,24 @@
                         if(s['Password Guru']) document.getElementById('set-pass-guru').value = s['Password Guru'];
                         if(s['Password Wali']) document.getElementById('set-pass-wali').value = s['Password Wali'];
                         if(s['Nama Admin']) document.getElementById('set-nama-admin').value = s['Nama Admin'];
+                        const semesterAktif = String(s['Semester Aktif'] || 'Ganjil').replace(/^'+/, '').trim();
+                        document.getElementById('set-semester-aktif').value = (semesterAktif === 'Genap') ? 'Genap' : 'Ganjil';
+                        updateSemesterAktifPreview();
                     }
                 })
                 .withFailureHandler(function(error) { hideLoading(); })
                 .apiGetSettings(currentUser.sessionToken);
         }
+
+        function updateSemesterAktifPreview() {
+            const select = document.getElementById('set-semester-aktif');
+            const preview = document.getElementById('semester-aktif-preview');
+            if (select && preview) preview.textContent = 'Semester ' + (select.value === 'Genap' ? 'Genap' : 'Ganjil');
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'set-semester-aktif') updateSemesterAktifPreview();
+        });
 
         function submitPengaturan(e) {
             e.preventDefault();
@@ -2633,7 +2658,8 @@
                 'Password Admin': document.getElementById('set-pass-admin').value,
                 'Password Guru': document.getElementById('set-pass-guru').value,
                 'Password Wali': document.getElementById('set-pass-wali').value,
-                'Nama Admin': document.getElementById('set-nama-admin').value
+                'Nama Admin': document.getElementById('set-nama-admin').value,
+                'Semester Aktif': document.getElementById('set-semester-aktif').value
             };
             showLoading("Menyimpan Pengaturan...");
             google.script.run
@@ -2709,12 +2735,11 @@
             }
             const area = document.getElementById('print-area');
             area.innerHTML = ''; 
+            let qrGagal = 0;
             
-            allStudentsCache.forEach((s, index) => {
+            allStudentsCache.forEach(s => {
                 const card = document.createElement('div');
                 card.className = "print-card bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden relative w-full max-w-[320px] h-[200px] flex transition-transform hover:scale-105";
-                // ID elemen QR dibuat unik per kartu. ID siswa yang duplikat tidak boleh
-                // membuat getElementById() selalu menunjuk ke kartu pertama.
                 card.innerHTML = `
                     <div class="bg-blue-700 w-[80px] flex flex-col items-center justify-center text-white p-3 text-center shrink-0 shadow-[4px_0_10px_rgba(0,0,0,0.1)] z-10">
                         <i class="fas fa-graduation-cap text-3xl mb-2"></i>
@@ -2729,28 +2754,42 @@
                         </div>
                         <div class="flex justify-end mt-2 z-20 relative">
                             <div class="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
-                                <div id="qr-${s.id}-${index}" class="w-[64px] h-[64px]"></div>
+                                <div class="qr-code-container w-[64px] h-[64px]"></div>
                             </div>
                         </div>
                     </div>
                 `;
                 area.appendChild(card);
 
-                // Cari kontainer QR dari kartu yang baru dibuat, bukan dari seluruh dokumen.
-                // Ini memastikan setiap kartu mendapatkan QR meskipun ID siswa berulang.
-                const qrContainer = card.querySelector('[id^="qr-"]');
-                const qrValue = String(s.id == null ? '' : s.id).trim();
-                if (qrContainer && qrValue) {
+                // Cari wadah QR dari kartu ini sendiri, bukan memakai ID global.
+                // Ini mencegah QR hilang bila ada ID siswa yang sama pada dua kartu.
+                const qrContainer = card.querySelector('.qr-code-container');
+                const studentId = String(s.id == null ? '' : s.id).trim();
+                if (!studentId) {
+                    qrGagal++;
+                    qrContainer.innerHTML = '<span style="display:flex;width:64px;height:64px;align-items:center;justify-content:center;font-size:9px;text-align:center;color:#b91c1c;line-height:1.1">ID SISWA<br>KOSONG</span>';
+                    return;
+                }
+                try {
                     new QRCode(qrContainer, {
-                        text: qrValue, width: 64, height: 64, colorDark: "#0f172a",
-                        colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M
+                        text: studentId,
+                        width: 64,
+                        height: 64,
+                        colorDark: "#0f172a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.M
                     });
-                } else if (qrContainer) {
-                    qrContainer.innerHTML = '<span class="text-[9px] text-red-600">ID kosong</span>';
-                    console.warn('QR tidak dibuat karena ID siswa kosong:', s);
+                } catch (err) {
+                    qrGagal++;
+                    qrContainer.innerHTML = '<span style="display:flex;width:64px;height:64px;align-items:center;justify-content:center;font-size:9px;text-align:center;color:#b91c1c;line-height:1.1">QR GAGAL</span>';
+                    console.error('Gagal membuat QR untuk siswa:', studentId, err);
                 }
             });
-            showToast(`Berhasil men-generate ${allStudentsCache.length} kartu. Siap dicetak!`, "success");
+            if (qrGagal) {
+                showToast(`Kartu dibuat: ${allStudentsCache.length}. QR tidak dapat dibuat pada ${qrGagal} kartu karena ID siswa kosong atau QR gagal. Periksa ID siswa tersebut.`, "error");
+            } else {
+                showToast(`Berhasil men-generate ${allStudentsCache.length} kartu. Siap dicetak!`, "success");
+            }
         }
 
         function toggleSound() {
@@ -2897,23 +2936,10 @@
                         if (result.status === 'success') {
                             await offlineQueueDelete(item.transactionId); synced++;
                         } else if (result.status === 'error_duplicate') {
-                            // Server memastikan siswa sudah tercatat pada tanggal ini.
-                            // Hapus antrean agar tidak dikirim berulang.
+                            // Sudah ada absensi untuk siswa/tanggal tersebut. Hapus dari antrean agar tidak dicoba berulang.
                             await offlineQueueDelete(item.transactionId); duplicates++;
-                        } else if (
-                            response.status >= 500 ||
-                            /Gagal menghubungi Apps Script|Respons Apps Script bukan JSON|Failed to fetch|NetworkError|fetch failed|temporar|sementara|timed out|timeout|try again/i.test(String(result.message || ''))
-                        ) {
-                            // Gangguan sementara di Worker/Apps Script bukan penolakan permanen.
-                            // Pertahankan state pending agar aman dicoba ulang tanpa membuat ID transaksi baru.
-                            item.state = 'pending';
-                            item.lastError = String(result.message || ('Gangguan sementara HTTP ' + response.status));
-                            await offlineQueuePut(item);
-                            break;
                         } else {
-                            // Kesalahan validasi/otorisasi perlu pemeriksaan; jangan menghapus data lokal.
-                            item.state = 'failed';
-                            item.lastError = String(result.message || result.status || 'Server menolak absensi');
+                            item.state = 'failed'; item.lastError = String(result.message || result.status || 'Server menolak absensi');
                             await offlineQueuePut(item); failed++;
                         }
                     } catch (error) {
@@ -3047,6 +3073,22 @@ function biometricDemoDelete(id) {
     let faceAutoScanActive = false;
     let faceAutoScanTimer = null;
     let faceAutoScanInFlight = false;
+    let faceLastVoiceState = '';
+
+    // Notifikasi suara khusus biometrik; mengikuti tombol suara aplikasi.
+    function faceSpeak(message, stateKey) {
+        if (!isSoundEnabled || !('speechSynthesis' in window)) return;
+        if (stateKey && faceLastVoiceState === stateKey) return;
+        faceLastVoiceState = stateKey || '';
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(message);
+            utterance.lang = 'id-ID';
+            utterance.rate = 0.95;
+            utterance.pitch = 1;
+            window.speechSynthesis.speak(utterance);
+        } catch (e) { /* Notifikasi visual tetap berjalan jika suara tidak tersedia. */ }
+    }
 
     function faceEl(id) { return document.getElementById(id); }
     function faceStatus(id, message, isError) {
@@ -3229,6 +3271,7 @@ function biometricDemoDelete(id) {
                 if (result.match && result.student) {
                     faceLastDescriptor = descriptor;
                     faceMatchedStudent = result.student;
+                    faceSpeak('Wajah cocok. Terverifikasi siswa atas nama ' + (result.student.nama || 'tidak diketahui') + '. Kelas ' + (result.student.kelas || '-') + '. Silakan periksa identitas dan konfirmasi kehadiran.', 'match:' + String(result.student.id || result.student.nama || 'siswa'));
                     faceStatus('face-verify-status',
                         'KANDIDAT WAJAH DITEMUKAN.\nNama: ' + (result.student.nama || '-') +
                         '\nKelas: ' + (result.student.kelas || '-') +
@@ -3239,9 +3282,11 @@ function biometricDemoDelete(id) {
                     window.faceStopAutoScan();
                     return;
                 } else {
-                    faceStatus('face-verify-status', 'Wajah terlihat, tetapi belum cocok dengan template terdaftar. Posisikan wajah dengan cahaya cukup.', false);
+                    faceSpeak('Wajah tidak cocok. Harap ulangi lagi.', 'mismatch');
+                    faceStatus('face-verify-status', 'Wajah terlihat, tetapi belum cocok dengan template terdaftar. Posisikan wajah dengan cahaya cukup.', true);
                 }
             } else {
+                faceLastVoiceState = '';
                 faceStatus('face-verify-status', 'Mencari wajah… Pastikan satu wajah terlihat jelas di kamera.', false);
             }
         } catch (err) {
@@ -3266,10 +3311,12 @@ function biometricDemoDelete(id) {
             const result = await faceApiCall('apiFaceVerify', [descriptor]);
             faceLastDescriptor = descriptor;
             if (!result.match || !result.student) {
+                faceSpeak('Wajah tidak cocok. Harap ulangi lagi.');
                 faceStatus('face-verify-status', (result.message || 'Wajah tidak cocok dengan template.') + (result.distance != null ? ' Jarak: ' + result.distance : ''), true);
                 return;
             }
             faceMatchedStudent = result.student;
+            faceSpeak('Wajah cocok. Terverifikasi siswa atas nama ' + (result.student.nama || 'tidak diketahui') + '. Kelas ' + (result.student.kelas || '-') + '. Silakan periksa identitas dan konfirmasi kehadiran.');
             faceStatus('face-verify-status',
                 (result.message || 'Kandidat cocok ditemukan.') + '\nNama: ' + (result.student.nama || '-') +
                 '\nKelas: ' + (result.student.kelas || '-') +
