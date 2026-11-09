@@ -2387,86 +2387,272 @@
                 return;
             }
 
-            // Pertahankan data yang sudah difilter pada halaman, termasuk batasan akun orang tua.
+            // Buka jendela cetak langsung dari tindakan pengguna agar kompatibel dengan HP/tablet.
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
                 showToast('Jendela cetak diblokir. Izinkan pop-up untuk aplikasi ini, lalu coba lagi.', 'error');
                 return;
             }
 
+            // Salin struktur dan data saja. Jangan menyalin computed style dari layar aplikasi,
+            // karena style tersebut membawa padding/min-width/overflow yang dapat menggeser tabel.
             const areaCopy = sourceArea.cloneNode(true);
-            const headerCopy = areaCopy.querySelector('#rekap-print-header');
-            if (headerCopy) headerCopy.classList.remove('hidden');
+            areaCopy.removeAttribute('style');
+            areaCopy.className = '';
 
-            // Pilih tabel yang sesuai dengan jenis rekap aktif, tanpa mengubah tampilan halaman utama.
+            const headerCopy = areaCopy.querySelector('#rekap-print-header');
+            if (headerCopy) {
+                headerCopy.classList.remove('hidden');
+                headerCopy.removeAttribute('style');
+            }
+
             const logTable = areaCopy.querySelector('#table-rekap-log');
             const summaryTable = areaCopy.querySelector('#table-rekap-summary');
             const rekapType = (document.getElementById('rekap-tipe') || {}).value || 'semua';
             const isSummary = rekapType === 'bulanan' || rekapType === 'semester';
-            if (logTable) logTable.classList.toggle('hidden', isSummary);
-            if (summaryTable) summaryTable.classList.toggle('hidden', !isSummary);
 
-            // Bawa gaya elemen yang sedang tampil ke salinan cetak tanpa memuat ulang CDN/font eksternal.
-            const copyComputedStyles = (source, target) => {
-                try {
-                    const computed = window.getComputedStyle(source);
-                    let inline = '';
-                    for (let i = 0; i < computed.length; i++) {
-                        const property = computed[i];
-                        inline += `${property}:${computed.getPropertyValue(property)};`;
-                    }
-                    target.style.cssText += ';' + inline;
-                } catch (e) {}
-                const sourceChildren = source.children || [];
-                const targetChildren = target.children || [];
-                for (let i = 0; i < Math.min(sourceChildren.length, targetChildren.length); i++) {
-                    copyComputedStyles(sourceChildren[i], targetChildren[i]);
-                }
-            };
-            copyComputedStyles(sourceArea, areaCopy);
+            if (logTable) {
+                logTable.classList.remove('hidden');
+                logTable.removeAttribute('style');
+                if (isSummary) logTable.style.display = 'none';
+            }
+            if (summaryTable) {
+                summaryTable.classList.remove('hidden');
+                summaryTable.removeAttribute('style');
+                if (!isSummary) summaryTable.style.display = 'none';
+            }
+
+            // Hilangkan kelas layout layar yang dapat menambahkan lebar minimum/padding.
+            areaCopy.querySelectorAll('.overflow-x-auto').forEach(el => {
+                el.className = 'print-table-wrap';
+                el.removeAttribute('style');
+            });
+            areaCopy.querySelectorAll('table').forEach(table => {
+                table.className = 'print-table';
+                table.removeAttribute('style');
+            });
+            areaCopy.querySelectorAll('th, td').forEach(cell => {
+                cell.removeAttribute('style');
+            });
+            areaCopy.querySelectorAll('tr').forEach(row => row.removeAttribute('style'));
+            areaCopy.querySelectorAll('.status-badge').forEach(el => {
+                el.removeAttribute('style');
+            });
 
             const printCss = `
-                @page { size: A4 portrait; margin: 8mm; }
-                *, *::before, *::after { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-                html, body { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #111 !important; font-family: Arial, sans-serif !important; overflow: visible !important; }
+                @page { size: A4 portrait; margin: 10mm; }
+
+                * {
+                    box-sizing: border-box !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+
+                html, body {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                    max-width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: #fff !important;
+                    color: #111 !important;
+                    font-family: Arial, Helvetica, sans-serif !important;
+                }
+
                 body { display: block !important; }
-                #print-root { display: block !important; width: 100% !important; max-width: 194mm !important; margin: 0 auto !important; padding: 0 !important; overflow: visible !important; }
-                #print-rekap-area { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; background: #fff !important; }
-                #rekap-print-header { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 0 3mm !important; padding: 0 0 2mm !important; border-bottom: 1.2px solid #111 !important; text-align: center !important; }
-                #rekap-print-header h2 { font-size: 14pt !important; margin: 0 0 1mm !important; line-height: 1.15 !important; }
-                #rekap-print-header h3 { font-size: 10pt !important; margin: 0 !important; line-height: 1.15 !important; }
-                #rekap-print-header p { font-size: 8pt !important; margin-top: 1mm !important; line-height: 1.15 !important; }
-                .overflow-x-auto { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: visible !important; }
-                #print-rekap-area table, #print-rekap-area .print-table { display: table !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; }
-                #print-rekap-area table.hidden, #print-rekap-area .hidden, .hidden { display: none !important; }
-                #print-rekap-area th, #print-rekap-area td { min-width: 0 !important; max-width: 100% !important; border: 1px solid #222 !important; color: #111 !important; padding: 1.5px 3px !important; font-size: 7.5pt !important; line-height: 1.1 !important; vertical-align: middle !important; white-space: normal !important; overflow-wrap: anywhere !important; word-break: normal !important; }
-                #print-rekap-area th { background: #e2e8f0 !important; font-weight: 700 !important; text-align: center !important; line-height: 1.1 !important; }
-                @media screen and (max-width: 767px) {
-                    html, body { width: 100% !important; min-width: 0 !important; }
-                    #print-root { width: 100% !important; max-width: 100% !important; padding: 8px !important; margin: 0 auto !important; }
-                    #rekap-print-header { margin-bottom: 10px !important; padding-bottom: 6px !important; }
-                    #rekap-print-header h2 { font-size: 16px !important; }
-                    #rekap-print-header h3 { font-size: 13px !important; }
-                    #rekap-print-header p { font-size: 11px !important; }
-                    #print-rekap-area th, #print-rekap-area td { padding: 4px 3px !important; font-size: 10px !important; line-height: 1.2 !important; }
+                #print-root {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 190mm !important;
+                    min-width: 0 !important;
+                    margin: 0 auto !important;
+                    padding: 0 !important;
                 }
-                @media screen and (min-width: 768px) and (max-width: 1024px) {
-                    #print-root { width: 100% !important; max-width: 100% !important; padding: 12px !important; }
-                    #print-rekap-area th, #print-rekap-area td { padding: 5px 4px !important; font-size: 11px !important; line-height: 1.2 !important; }
+
+                #print-rekap-area {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: 0 !important;
+                    border-radius: 0 !important;
+                    box-shadow: none !important;
+                    overflow: visible !important;
+                    background: #fff !important;
                 }
-                #print-rekap-area thead { display: table-header-group !important; }
-                #print-rekap-area tfoot { display: table-footer-group !important; }
-                #print-rekap-area tr { break-inside: avoid !important; page-break-inside: avoid !important; }
-                #print-rekap-area .status-badge { background: transparent !important; color: #111 !important; padding: 0 !important; border: 0 !important; }
+
+                #rekap-print-header {
+                    display: block !important;
+                    width: 100% !important;
+                    margin: 0 0 4mm !important;
+                    padding: 0 0 2.5mm !important;
+                    border: 0 !important;
+                    border-bottom: 1.2px solid #111 !important;
+                    text-align: center !important;
+                }
+                #rekap-print-header h2 {
+                    margin: 0 0 1mm !important;
+                    font-size: 14pt !important;
+                    line-height: 1.2 !important;
+                    font-weight: 700 !important;
+                }
+                #rekap-print-header h3 {
+                    margin: 0 !important;
+                    font-size: 10pt !important;
+                    line-height: 1.2 !important;
+                    font-weight: 700 !important;
+                }
+                #rekap-print-header p {
+                    margin: 1.5mm 0 0 !important;
+                    font-size: 8.5pt !important;
+                    line-height: 1.2 !important;
+                }
+
+                .print-table-wrap {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: visible !important;
+                }
+
+                .print-table {
+                    display: table !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-width: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border-collapse: collapse !important;
+                    border-spacing: 0 !important;
+                    table-layout: fixed !important;
+                    font-size: 9pt !important;
+                }
+
+                .print-table th,
+                .print-table td {
+                    min-width: 0 !important;
+                    max-width: none !important;
+                    height: auto !important;
+                    padding: 4px 5px !important;
+                    border: 1px solid #222 !important;
+                    color: #111 !important;
+                    font-size: 9pt !important;
+                    line-height: 1.25 !important;
+                    vertical-align: middle !important;
+                    white-space: normal !important;
+                    overflow-wrap: break-word !important;
+                    word-break: normal !important;
+                }
+
+                .print-table th {
+                    background: #e2e8f0 !important;
+                    font-weight: 700 !important;
+                    text-align: center !important;
+                }
+
+                /* Lebar kolom rekap harian: jumlah keseluruhan tepat di dalam area A4. */
+                #table-rekap-log th:nth-child(1), #table-rekap-log td:nth-child(1) { width: 19% !important; }
+                #table-rekap-log th:nth-child(2), #table-rekap-log td:nth-child(2) { width: 15% !important; }
+                #table-rekap-log th:nth-child(3), #table-rekap-log td:nth-child(3) { width: 34% !important; }
+                #table-rekap-log th:nth-child(4), #table-rekap-log td:nth-child(4) { width: 12% !important; }
+                #table-rekap-log th:nth-child(5), #table-rekap-log td:nth-child(5) { width: 20% !important; }
+
+                /* Lebar kolom rekap bulanan/semester. */
+                #table-rekap-summary th:nth-child(1), #table-rekap-summary td:nth-child(1) { width: 10% !important; }
+                #table-rekap-summary th:nth-child(2), #table-rekap-summary td:nth-child(2) { width: 25% !important; }
+                #table-rekap-summary th:nth-child(3), #table-rekap-summary td:nth-child(3) { width: 10% !important; }
+                #table-rekap-summary th:nth-child(4), #table-rekap-summary td:nth-child(4) { width: 8% !important; }
+                #table-rekap-summary th:nth-child(5), #table-rekap-summary td:nth-child(5) { width: 11% !important; }
+                #table-rekap-summary th:nth-child(6), #table-rekap-summary td:nth-child(6) { width: 8% !important; }
+                #table-rekap-summary th:nth-child(7), #table-rekap-summary td:nth-child(7) { width: 8% !important; }
+                #table-rekap-summary th:nth-child(8), #table-rekap-summary td:nth-child(8) { width: 20% !important; }
+
+                #table-rekap-log td:nth-child(1),
+                #table-rekap-log td:nth-child(2),
+                #table-rekap-log td:nth-child(4) { text-align: center !important; }
+
+                #table-rekap-summary td:nth-child(n+4) { text-align: center !important; }
+                .status-badge {
+                    display: inline !important;
+                    padding: 0 !important;
+                    border: 0 !important;
+                    background: transparent !important;
+                    color: #111 !important;
+                    font-weight: 700 !important;
+                }
+
+                .hidden { display: none !important; }
+                thead { display: table-header-group !important; }
+                tfoot { display: table-footer-group !important; }
+                tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+
+                /* Pratinjau pada layar kecil: tetap muat di viewport, tanpa mengubah ukuran cetak A4. */
+                @media screen {
+                    html, body { min-height: 100% !important; background: #eef0f3 !important; }
+                    #print-root {
+                        width: calc(100% - 24px) !important;
+                        max-width: 190mm !important;
+                        margin: 12px auto !important;
+                        padding: 10mm !important;
+                        background: #fff !important;
+                        box-shadow: 0 1px 8px rgba(0,0,0,.16) !important;
+                    }
+                }
+
+                @media screen and (max-width: 600px) {
+                    #print-root {
+                        width: calc(100% - 16px) !important;
+                        margin: 8px auto !important;
+                        padding: 5mm !important;
+                    }
+                    .print-table th, .print-table td {
+                        padding: 3px 3px !important;
+                        font-size: 8pt !important;
+                        line-height: 1.2 !important;
+                    }
+                    #rekap-print-header h2 { font-size: 12pt !important; }
+                    #rekap-print-header h3 { font-size: 9pt !important; }
+                    #rekap-print-header p { font-size: 8pt !important; }
+                }
+
+                @media print {
+                    html, body { width: 100% !important; background: #fff !important; }
+                    #print-root {
+                        width: 100% !important;
+                        max-width: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                    }
+                    .print-table th, .print-table td {
+                        padding: 4px 5px !important;
+                        font-size: 9pt !important;
+                        line-height: 1.25 !important;
+                    }
+                }
             `;
 
             printWindow.document.open();
-            printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Rekap Absensi Siswa</title><style>${printCss}</style></head><body><main id="print-root"></main></body></html>`);
+            printWindow.document.write(`<!doctype html>
+                <html lang="id">
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <title>Rekap Absensi Siswa</title>
+                    <style>${printCss}</style>
+                </head>
+                <body><main id="print-root"></main></body>
+                </html>`);
             printWindow.document.close();
+
             const root = printWindow.document.getElementById('print-root');
             root.appendChild(areaCopy);
 
-            // Jadwalkan cetak setelah DOM salinan terpasang; tidak menunggu font/CDN yang bisa macet di Android.
             const triggerPrint = () => {
                 try {
                     printWindow.focus();
@@ -2475,8 +2661,13 @@
                     showToast('Pratinjau cetak gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error');
                 }
             };
-            printWindow.onafterprint = () => { try { printWindow.close(); } catch (e) {} };
-            setTimeout(triggerPrint, 500);
+
+            printWindow.onafterprint = () => {
+                try { printWindow.close(); } catch (e) {}
+            };
+
+            // Beri waktu singkat agar struktur tabel selesai dirender sebelum dialog cetak muncul.
+            setTimeout(triggerPrint, 350);
         }
 
         function printKartu() {
