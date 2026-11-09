@@ -2432,15 +2432,28 @@
                 body { display: block !important; }
                 #print-root { display: block !important; width: 100% !important; max-width: 194mm !important; margin: 0 auto !important; padding: 0 !important; overflow: visible !important; }
                 #print-rekap-area { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; overflow: visible !important; background: #fff !important; }
-                #rekap-print-header { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 0 6mm !important; padding: 0 0 3mm !important; border-bottom: 1.5px solid #111 !important; text-align: center !important; }
-                #rekap-print-header h2 { font-size: 15pt !important; margin: 0 0 2mm !important; }
-                #rekap-print-header h3 { font-size: 11pt !important; margin: 0 !important; }
-                #rekap-print-header p { font-size: 9pt !important; margin-top: 2mm !important; }
+                #rekap-print-header { display: block !important; width: 100% !important; max-width: 100% !important; margin: 0 0 3mm !important; padding: 0 0 2mm !important; border-bottom: 1.2px solid #111 !important; text-align: center !important; }
+                #rekap-print-header h2 { font-size: 14pt !important; margin: 0 0 1mm !important; line-height: 1.15 !important; }
+                #rekap-print-header h3 { font-size: 10pt !important; margin: 0 !important; line-height: 1.15 !important; }
+                #rekap-print-header p { font-size: 8pt !important; margin-top: 1mm !important; line-height: 1.15 !important; }
                 .overflow-x-auto { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: visible !important; }
                 #print-rekap-area table, #print-rekap-area .print-table { display: table !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; }
                 #print-rekap-area table.hidden, #print-rekap-area .hidden, .hidden { display: none !important; }
-                #print-rekap-area th, #print-rekap-area td { min-width: 0 !important; max-width: 100% !important; border: 1px solid #222 !important; color: #111 !important; padding: 3px 4px !important; font-size: 8pt !important; line-height: 1.25 !important; vertical-align: top !important; white-space: normal !important; overflow-wrap: anywhere !important; word-break: normal !important; }
-                #print-rekap-area th { background: #e2e8f0 !important; font-weight: 700 !important; text-align: center !important; }
+                #print-rekap-area th, #print-rekap-area td { min-width: 0 !important; max-width: 100% !important; border: 1px solid #222 !important; color: #111 !important; padding: 1.5px 3px !important; font-size: 7.5pt !important; line-height: 1.1 !important; vertical-align: middle !important; white-space: normal !important; overflow-wrap: anywhere !important; word-break: normal !important; }
+                #print-rekap-area th { background: #e2e8f0 !important; font-weight: 700 !important; text-align: center !important; line-height: 1.1 !important; }
+                @media screen and (max-width: 767px) {
+                    html, body { width: 100% !important; min-width: 0 !important; }
+                    #print-root { width: 100% !important; max-width: 100% !important; padding: 8px !important; margin: 0 auto !important; }
+                    #rekap-print-header { margin-bottom: 10px !important; padding-bottom: 6px !important; }
+                    #rekap-print-header h2 { font-size: 16px !important; }
+                    #rekap-print-header h3 { font-size: 13px !important; }
+                    #rekap-print-header p { font-size: 11px !important; }
+                    #print-rekap-area th, #print-rekap-area td { padding: 4px 3px !important; font-size: 10px !important; line-height: 1.2 !important; }
+                }
+                @media screen and (min-width: 768px) and (max-width: 1024px) {
+                    #print-root { width: 100% !important; max-width: 100% !important; padding: 12px !important; }
+                    #print-rekap-area th, #print-rekap-area td { padding: 5px 4px !important; font-size: 11px !important; line-height: 1.2 !important; }
+                }
                 #print-rekap-area thead { display: table-header-group !important; }
                 #print-rekap-area tfoot { display: table-footer-group !important; }
                 #print-rekap-area tr { break-inside: avoid !important; page-break-inside: avoid !important; }
