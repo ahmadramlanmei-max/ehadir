@@ -2431,6 +2431,17 @@
                 table.className = 'print-table';
                 table.removeAttribute('style');
             });
+
+            // PENTING: class hidden dihapus saat menormalkan tabel untuk cetak.
+            // Karena itu, tetapkan ulang visibilitas berdasarkan jenis rekap yang dipilih.
+            // Hanya satu tabel yang boleh tampil agar data harian dan bulanan tidak bercampur.
+            if (logTable) {
+                logTable.style.setProperty('display', isSummary ? 'none' : 'table', 'important');
+            }
+            if (summaryTable) {
+                summaryTable.style.setProperty('display', isSummary ? 'table' : 'none', 'important');
+            }
+
             areaCopy.querySelectorAll('th, td').forEach(cell => {
                 cell.removeAttribute('style');
             });
