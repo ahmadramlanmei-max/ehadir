@@ -1403,12 +1403,14 @@
                 errorMsgEl.classList.remove('flex');
             }
             
-            if (typeof google === 'undefined') {
-                showToast("Buka aplikasi ini dari Web App URL Google Apps Script.", "error");
+            // Tampilkan indikator segera setelah tombol masuk ditekan.
+            showLoading("Memeriksa Akses...");
+
+            if (typeof google === 'undefined' || !google.script || !google.script.run) {
+                showToast("Layanan login Google Apps Script tidak tersedia. Periksa alamat aplikasi atau koneksi server.", "error");
+                setTimeout(hideLoading, 900);
                 return;
             }
-
-            showLoading("Memeriksa Akses...");
             
             google.script.run
                 .withSuccessHandler(function(res) {
@@ -3207,14 +3209,34 @@
             }, 4000);
         }
 
-        function showLoading(text) { 
+        function showLoading(text) {
             const el = document.getElementById('loading-overlay');
-            document.getElementById('loading-text').innerText = text; 
-            el.classList.remove('hidden'); el.classList.add('flex'); 
+            const label = document.getElementById('loading-text');
+            if (!el || !label) return;
+
+            label.textContent = text || 'Memeriksa Akses...';
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+
+            // Paksa overlay tampil di atas seluruh halaman, termasuk pada GitHub Pages/mobile.
+            el.style.setProperty('display', 'flex', 'important');
+            el.style.setProperty('visibility', 'visible', 'important');
+            el.style.setProperty('opacity', '1', 'important');
+            el.style.setProperty('position', 'fixed', 'important');
+            el.style.setProperty('inset', '0', 'important');
+            el.style.setProperty('z-index', '2147483000', 'important');
+
+            // Memastikan browser sempat menggambar indikator sebelum permintaan server berjalan.
+            void el.offsetHeight;
         }
-        function hideLoading() { 
+        function hideLoading() {
             const el = document.getElementById('loading-overlay');
-            el.classList.add('hidden'); el.classList.remove('flex'); 
+            if (!el) return;
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('pointer-events', 'none', 'important');
         }
     </script>
 
