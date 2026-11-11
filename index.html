@@ -544,6 +544,9 @@
             <a href="javascript:void(0)" onclick="switchView('pengaturan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="pengaturan">
                 <i class="fas fa-cog text-lg w-5 text-center"></i> Pengaturan
             </a>
+            <a href="javascript:void(0)" onclick="switchView('akun')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium admin-only" data-target="akun">
+                <i class="fas fa-user-shield text-lg w-5 text-center"></i> Manajemen Akun
+            </a>
         </nav>
         
         <div class="p-6 border-t border-slate-800 bg-slate-950">
@@ -1214,6 +1217,32 @@
             </div>
             
         </div>
+    
+            <div id="view-akun" class="view-section">
+                <div class="mb-6">
+                    <h2 class="text-2xl font-extrabold text-slate-800">Manajemen Akun Pengguna</h2>
+                    <p class="text-slate-500 font-medium">Buat akun individual Admin, Guru, dan Orang Tua tanpa menghapus akun lama.</p>
+                </div>
+                <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 mb-5 text-sm text-blue-900">
+                    <b>Migrasi bertahap:</b> akun lama tetap aktif untuk username yang belum dibuatkan akun individual. Setelah username dibuat di sini, login wajib memakai password individual.
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 md:p-7 mb-6">
+                    <h3 class="font-extrabold text-slate-800 mb-4">Buat Akun Baru</h3>
+                    <form id="form-akun-baru" onsubmit="submitAkunBaru(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Jenis Akun</label><select id="akun-role" required onchange="updateAkunUsernameHint()" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"><option value="guru">Guru</option><option value="admin">Administrator</option><option value="wali">Orang Tua / Wali Murid</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1" id="akun-username-label">Username Guru</label><input id="akun-username" required maxlength="60" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Contoh: ramlan" /></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Nama Lengkap</label><input id="akun-nama" required maxlength="100" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" placeholder="Nama pemilik akun" /></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Password Awal (minimal 10 karakter)</label><input id="akun-password" type="password" required minlength="10" maxlength="128" autocomplete="new-password" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" /></div>
+                        <div class="md:col-span-2"><p id="akun-role-hint" class="text-xs text-slate-500">Username dibuat khusus untuk guru. Berikan kredensial secara pribadi.</p></div>
+                        <div class="md:col-span-2 flex justify-end"><button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-3 rounded-xl"><i class="fas fa-user-plus mr-2"></i>Buat Akun</button></div>
+                    </form>
+                </div>
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-5 flex flex-col sm:flex-row justify-between gap-3 items-start sm:items-center"><div><h3 class="font-extrabold text-slate-800">Daftar Akun Individual</h3><p class="text-xs text-slate-500">Password tidak ditampilkan. Gunakan Reset Password bila pengguna lupa.</p></div><button type="button" onclick="loadDaftarAkun()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2 rounded-lg text-sm"><i class="fas fa-sync-alt mr-2"></i>Muat Ulang</button></div>
+                    <div class="overflow-x-auto"><table class="w-full min-w-[680px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">Username</th><th class="p-3 text-left">Nama</th><th class="p-3 text-left">Peran</th><th class="p-3 text-left">Status</th><th class="p-3 text-center">Aksi</th></tr></thead><tbody id="akun-list"><tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat daftar akun...</td></tr></tbody></table></div>
+                </div>
+            </div>
+
     </main>
 
     <!-- MODAL TAMBAH 1 SISWA -->
@@ -1495,8 +1524,9 @@
                     if (target !== 'dashboard' && target !== 'rekap' && target !== 'izinsakit') el.classList.add('hidden');
                 } 
                 else if (currentUser.role === 'guru') {
-                    if (target === 'siswa' || target === 'kartu' || target === 'pengaturan') el.classList.add('hidden');
+                    if (target === 'siswa' || target === 'kartu' || target === 'pengaturan' || target === 'akun') el.classList.add('hidden');
                 }
+                if (target === 'akun' && currentUser.role !== 'admin') el.classList.add('hidden');
             });
 
             const waliForm = document.getElementById('izin-form-wali');
@@ -2816,7 +2846,10 @@
                     <title>Rekap Absensi Siswa</title>
                     <style>${printCss}</style>
                 </head>
-                <body><main id="print-root"></main></body>
+                <body><main id="print-root"></main>
+
+
+</body>
                 </html>`);
             printWindow.document.close();
 
@@ -3906,5 +3939,45 @@ function biometricDemoDelete(id) {
 })();
 </script>
 
+<script>
+// TAHAP 1: Manajemen akun individual. Tidak mengubah fungsi login lama.
+function updateAkunUsernameHint() {
+  const role = document.getElementById('akun-role').value;
+  const label = document.getElementById('akun-username-label');
+  const hint = document.getElementById('akun-role-hint');
+  const username = document.getElementById('akun-username');
+  if (role === 'wali') { label.textContent='NIS Anak (sebagai Username)'; hint.textContent='Masukkan NIS yang sudah terdaftar pada DATA_SISWA. Setiap NIS memiliki password wali masing-masing.'; username.inputMode='numeric'; }
+  else { label.textContent=role==='admin'?'Username Administrator':'Username Guru'; hint.textContent='Gunakan username individual, bukan akun bersama.'; username.inputMode='text'; }
+}
+function loadDaftarAkun() {
+  const body=document.getElementById('akun-list'); if(!body) return;
+  body.innerHTML='<tr><td colspan="5" class="p-6 text-center text-slate-400">Memuat...</td></tr>';
+  google.script.run.withSuccessHandler(res=>{
+    if(!res || res.status!=='success'){body.innerHTML='<tr><td colspan="5" class="p-6 text-center text-red-500">'+escapeHtmlAkun((res&&res.message)||'Gagal memuat akun')+'</td></tr>';return;}
+    body.innerHTML='';
+    if(!res.data.length){body.innerHTML='<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada akun individual. Akun lama masih dapat digunakan.</td></tr>';return;}
+    res.data.forEach(a=>{
+      const tr=document.createElement('tr'); tr.className='border-t border-slate-100';
+      const cells=[a.username,a.nama,a.role==='wali'?'Orang Tua':a.role==='admin'?'Admin':'Guru',a.status];
+      cells.forEach(v=>{const td=document.createElement('td');td.className='p-3';td.textContent=v||'-';tr.appendChild(td);});
+      const td=document.createElement('td');td.className='p-3 text-center whitespace-nowrap';
+      const reset=document.createElement('button');reset.type='button';reset.className='text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg font-bold mr-2';reset.textContent='Reset Sandi';
+      reset.onclick=()=>{const p=prompt('Masukkan password baru minimal 10 karakter untuk '+a.username);if(p===null)return;if(p.length<10){showToast('Password minimal 10 karakter.','error');return;}showLoading('Mereset password...');google.script.run.withSuccessHandler(x=>{hideLoading();showToast(x.message||'Selesai',x.status==='success'?'success':'error');}).withFailureHandler(e=>{hideLoading();showToast(e.message||'Gagal','error');}).apiResetAccountPassword(currentUser.sessionToken,a.username,p);};
+      const toggle=document.createElement('button');toggle.type='button';toggle.className='text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg font-bold';toggle.textContent=a.status==='AKTIF'?'Nonaktifkan':'Aktifkan';
+      toggle.onclick=()=>{if(!confirm((a.status==='AKTIF'?'Nonaktifkan':'Aktifkan')+' akun '+a.username+'?'))return;google.script.run.withSuccessHandler(x=>{showToast(x.message||'Selesai',x.status==='success'?'success':'error');loadDaftarAkun();}).apiSetAccountStatus(currentUser.sessionToken,a.username,a.status==='AKTIF'?'NONAKTIF':'AKTIF');};
+      td.appendChild(reset);td.appendChild(toggle);tr.appendChild(td);body.appendChild(tr);
+    });
+  }).withFailureHandler(e=>{body.innerHTML='<tr><td colspan="5" class="p-6 text-center text-red-500">'+escapeHtmlAkun(e.message||'Gagal')+'</td></tr>';}).apiListAccounts(currentUser.sessionToken);
+}
+function escapeHtmlAkun(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function submitAkunBaru(e){
+  e.preventDefault();
+  const payload={role:document.getElementById('akun-role').value,username:document.getElementById('akun-username').value.trim(),nama:document.getElementById('akun-nama').value.trim(),password:document.getElementById('akun-password').value};
+  showLoading('Membuat akun individual...');
+  google.script.run.withSuccessHandler(res=>{hideLoading();showToast(res.message||'Selesai',res.status==='success'?'success':'error');if(res.status==='success'){document.getElementById('form-akun-baru').reset();updateAkunUsernameHint();loadDaftarAkun();}}).withFailureHandler(err=>{hideLoading();showToast(err.message||'Gagal membuat akun','error');}).apiCreateAccount(currentUser.sessionToken,payload);
+}
+// Hook menu lama tanpa mengganti implementasi switchView.
+(function(){const old=window.switchView;if(typeof old==='function'){window.switchView=function(id){old(id);if(id==='akun'&&currentUser&&currentUser.role==='admin')loadDaftarAkun();};}})();
+</script>
 </body>
 </html>
