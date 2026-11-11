@@ -1157,14 +1157,51 @@
                             </div>
                             
                             <div class="pt-2">
+                                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2"><i class="fas fa-calendar-day mr-2"></i> Kalender Hari Libur Sekolah</h3>
+                                <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 mb-4">
+                                    <p class="text-sm font-semibold text-amber-900">Tanggal yang didaftarkan di sini akan dilewati oleh sistem otomatis Alpa.</p>
+                                    <p class="text-xs text-amber-800 mt-1">Gunakan untuk tanggal merah nasional, libur semester, libur daerah, atau libur khusus sekolah. Rentang tanggal juga didukung.</p>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 items-end">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5" for="libur-tanggal-mulai">Tanggal Mulai</label>
+                                        <input type="date" id="libur-tanggal-mulai" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5" for="libur-tanggal-selesai">Tanggal Selesai</label>
+                                        <input type="date" id="libur-tanggal-selesai" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5" for="libur-keterangan">Keterangan</label>
+                                        <input type="text" id="libur-keterangan" maxlength="150" placeholder="Contoh: Libur Nasional" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                    </div>
+                                </div>
+                                <div class="flex justify-end mt-3">
+                                    <button type="button" onclick="tambahHariLibur()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm"><i class="fas fa-plus mr-2"></i>Tambah Hari Libur</button>
+                                </div>
+                                <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+                                    <table class="w-full min-w-[520px] text-sm">
+                                        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                                            <tr><th class="p-3 text-left">Tanggal</th><th class="p-3 text-left">Keterangan</th><th class="p-3 text-center">Aksi</th></tr>
+                                        </thead>
+                                        <tbody id="hari-libur-list"><tr><td colspan="3" class="p-4 text-center text-slate-400">Memuat kalender hari libur...</td></tr></tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div class="pt-2">
                                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2"><i class="fas fa-clock mr-2"></i> Aturan Waktu Absensi</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 mb-1.5">Batas Waktu Hadir (Hadir Normal)</label>
                                         <input type="time" id="set-batas-hadir" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
                                     </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">Jam Pulang (Batas Otomatis Alpa)</label>
+                                        <input type="time" id="set-jam-pulang" value="14:00" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
+                                    </div>
                                 </div>
-                                <p class="text-xs text-slate-400 font-medium mt-3">*Siswa yang memindai QR lewat dari waktu Batas Hadir otomatis akan berstatus <b>Terlambat</b>.</p>
+                                <p class="text-xs text-slate-400 font-medium mt-3">*Siswa yang memindai QR lewat dari Batas Hadir berstatus <b>Terlambat</b>. Setiap Senin-Sabtu, setelah melewati Jam Pulang, siswa aktif yang belum memiliki catatan absensi pada hari tersebut otomatis dicatat <b>Alpa/Tanpa Keterangan</b>. Catatan yang sudah ada tidak akan ditimpa. Pemeriksaan berjalan otomatis setiap 15 menit.</p>
                             </div>
                         </div>
                         <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
@@ -2964,16 +3001,103 @@
                         if(s['Tahun Ajaran']) document.getElementById('set-tahun-ajaran').value = s['Tahun Ajaran'];
                         if(s['Password Admin']) document.getElementById('set-pass-admin').value = s['Password Admin'];
                         if(s['Batas Hadir']) document.getElementById('set-batas-hadir').value = s['Batas Hadir'];
+                        if(s['Jam Pulang']) document.getElementById('set-jam-pulang').value = String(s['Jam Pulang']).replace(/^'+/, '').trim();
                         if(s['Password Guru']) document.getElementById('set-pass-guru').value = s['Password Guru'];
                         if(s['Password Wali']) document.getElementById('set-pass-wali').value = s['Password Wali'];
                         if(s['Nama Admin']) document.getElementById('set-nama-admin').value = s['Nama Admin'];
                         const semesterAktif = String(s['Semester Aktif'] || 'Ganjil').replace(/^'+/, '').trim();
                         document.getElementById('set-semester-aktif').value = (semesterAktif === 'Genap') ? 'Genap' : 'Ganjil';
                         updateSemesterAktifPreview();
+                        loadHariLibur();
                     }
                 })
                 .withFailureHandler(function(error) { hideLoading(); })
                 .apiGetSettings(currentUser.sessionToken);
+        }
+
+
+        function loadHariLibur() {
+            const tbody = document.getElementById('hari-libur-list');
+            if (!tbody || !currentUser || !currentUser.sessionToken) return;
+            tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400">Memuat kalender hari libur...</td></tr>';
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    if (!res || res.status !== 'success') {
+                        tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-red-500">' + escapeHtmlIzin(String(res && res.message || 'Gagal memuat data hari libur.')) + '</td></tr>';
+                        return;
+                    }
+                    if (!res.data || !res.data.length) {
+                        tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400">Belum ada tanggal libur yang ditambahkan.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = res.data.map(function(item) {
+                        const rentang = item.tanggalMulai === item.tanggalSelesai
+                            ? item.tanggalMulai
+                            : item.tanggalMulai + ' s.d. ' + item.tanggalSelesai;
+                        return '<tr class="border-t border-slate-100">' +
+                            '<td class="p-3 font-semibold text-slate-700">' + escapeHtmlIzin(rentang) + '</td>' +
+                            '<td class="p-3 text-slate-600">' + escapeHtmlIzin(item.keterangan || '') + '</td>' +
+                            '<td class="p-3 text-center"><button type="button" onclick="hapusHariLibur(\'' + escapeHtmlIzin(item.id) + '\')" class="text-red-600 hover:text-red-800 font-bold px-3 py-1 rounded-lg hover:bg-red-50"><i class="fas fa-trash-alt mr-1"></i>Hapus</button></td>' +
+                            '</tr>';
+                    }).join('');
+                })
+                .withFailureHandler(function(error) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-red-500">Gagal memuat kalender hari libur.</td></tr>';
+                })
+                .apiGetHariLibur(currentUser.sessionToken);
+        }
+
+        function tambahHariLibur() {
+            const tanggalMulai = document.getElementById('libur-tanggal-mulai').value;
+            const tanggalSelesai = document.getElementById('libur-tanggal-selesai').value || tanggalMulai;
+            const keterangan = document.getElementById('libur-keterangan').value.trim();
+            if (!tanggalMulai || !keterangan) {
+                showToast('Tanggal mulai dan keterangan wajib diisi.', 'error');
+                return;
+            }
+            if (tanggalSelesai < tanggalMulai) {
+                showToast('Tanggal selesai tidak boleh lebih awal dari tanggal mulai.', 'error');
+                return;
+            }
+            showLoading('Menyimpan hari libur...');
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    hideLoading();
+                    if (res && res.status === 'success') {
+                        document.getElementById('libur-tanggal-mulai').value = '';
+                        document.getElementById('libur-tanggal-selesai').value = '';
+                        document.getElementById('libur-keterangan').value = '';
+                        showToast(res.message, 'success');
+                        loadHariLibur();
+                    } else showToast(res && res.message || 'Gagal menyimpan hari libur.', 'error');
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    showToast(error && error.message || 'Gagal menyimpan hari libur.', 'error');
+                })
+                .apiSimpanHariLibur(currentUser.sessionToken, {
+                    tanggalMulai: tanggalMulai,
+                    tanggalSelesai: tanggalSelesai,
+                    keterangan: keterangan
+                });
+        }
+
+        function hapusHariLibur(id) {
+            if (!confirm('Hapus tanggal libur ini dari kalender sekolah?')) return;
+            showLoading('Menghapus hari libur...');
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    hideLoading();
+                    if (res && res.status === 'success') {
+                        showToast(res.message, 'success');
+                        loadHariLibur();
+                    } else showToast(res && res.message || 'Gagal menghapus hari libur.', 'error');
+                })
+                .withFailureHandler(function(error) {
+                    hideLoading();
+                    showToast(error && error.message || 'Gagal menghapus hari libur.', 'error');
+                })
+                .apiHapusHariLibur(currentUser.sessionToken, id);
         }
 
         function updateSemesterAktifPreview() {
@@ -2992,6 +3116,7 @@
                 'Nama Sekolah': document.getElementById('set-nama-sekolah').value,
                 'Tahun Ajaran': document.getElementById('set-tahun-ajaran').value,
                 'Batas Hadir': document.getElementById('set-batas-hadir').value,
+                'Jam Pulang': document.getElementById('set-jam-pulang').value,
                 'Password Admin': document.getElementById('set-pass-admin').value,
                 'Password Guru': document.getElementById('set-pass-guru').value,
                 'Password Wali': document.getElementById('set-pass-wali').value,
