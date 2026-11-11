@@ -560,6 +560,8 @@
             <a href="javascript:void(0)" onclick="switchView('akun')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium admin-only" data-target="akun">
                 <i class="fas fa-user-shield text-lg w-5 text-center"></i> Manajemen Akun
             </a>
+            <a href="javascript:void(0)" onclick="switchView('notifikasi')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="notifikasi"><i class="fas fa-bell text-lg w-5 text-center"></i> Notifikasi <span id="eh-notif-badge" class="hidden ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">0</span></a>
+            <a href="javascript:void(0)" onclick="switchView('monitor-notifikasi')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium admin-only" data-target="monitor-notifikasi"><i class="fas fa-clipboard-list text-lg w-5 text-center"></i> Monitoring Notifikasi</a>
         </nav>
         
         <div class="p-6 border-t border-slate-800 bg-slate-950">
@@ -799,6 +801,9 @@
                     </div>
                 </div>
             </div>
+
+<section id="view-notifikasi" class="view-section p-4 md:p-8"><div class="max-w-4xl mx-auto"><div class="flex items-center justify-between gap-3 mb-6"><h2 class="text-2xl font-bold text-slate-800"><i class="fas fa-bell text-blue-600 mr-2"></i>Notifikasi Kehadiran Anak</h2><button onclick="loadWaliNotifications()" class="bg-blue-600 text-white px-4 py-2 rounded-xl">Muat ulang</button></div><div id="eh-notif-list" class="space-y-3">Memuat notifikasi...</div></div></section>
+<section id="view-monitor-notifikasi" class="view-section p-4 md:p-8"><div class="max-w-5xl mx-auto"><h2 class="text-2xl font-bold text-slate-800 mb-4">Monitoring Notifikasi Wali</h2><div id="eh-notif-admin" class="bg-white rounded-xl p-5">Memuat...</div></div></section>
 
             <div id="view-dashboard" class="view-section">
                 <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -1629,11 +1634,13 @@
                 el.classList.remove('hidden');
                 
                 if (currentUser.role === 'wali') {
-                    if (target !== 'dashboard' && target !== 'rekap' && target !== 'izinsakit') el.classList.add('hidden');
+                    if (target !== 'dashboard' && target !== 'rekap' && target !== 'izinsakit' && target !== 'notifikasi') el.classList.add('hidden');
                 } 
                 else if (currentUser.role === 'guru') {
                     if (target === 'siswa' || target === 'kartu' || target === 'pengaturan' || target === 'akun') el.classList.add('hidden');
                 }
+                if (target === 'notifikasi' && currentUser.role !== 'wali') el.classList.add('hidden');
+                if (target === 'monitor-notifikasi' && currentUser.role !== 'admin') el.classList.add('hidden');
                 if (target === 'akun' && currentUser.role !== 'admin') el.classList.add('hidden');
             });
 
@@ -1646,7 +1653,7 @@
                 else el.classList.remove('hidden');
             });
             
-            if (currentUser.role === 'wali') switchView('dashboard');
+            if (currentUser.role === 'wali') { switchView('dashboard'); loadWaliNotifications(); }
             else switchView('scanner');
             
             if (typeof google !== 'undefined') {
@@ -1700,6 +1707,35 @@
             document.body.classList.remove('sidebar-mobile-open');
         }
 
+
+        // Notifikasi internal: selalu gunakan sesi server dan filter NIS di Apps Script.
+        function ehEscape(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function loadWaliNotifications() {
+            if (!currentUser || currentUser.role !== 'wali') return;
+            const el=document.getElementById('eh-notif-list');
+            if(el) el.innerHTML='<p class="text-slate-500">Memuat notifikasi...</p>';
+            google.script.run.withSuccessHandler(res=>{
+                if(res.status!=='success') { if(el) el.textContent=res.message||'Gagal memuat notifikasi'; return; }
+                const badge=document.getElementById('eh-notif-badge');
+                if(badge){badge.textContent=res.unread||0;badge.classList.toggle('hidden',!res.unread);}
+                if(!el) return;
+                el.innerHTML=(res.data||[]).length ? res.data.map(n=>`<div class="bg-white rounded-xl border ${n.dibaca?'border-slate-200':'border-blue-400'} p-4 shadow-sm"><div class="flex justify-between gap-2"><strong>${ehEscape(n.judul)}</strong><span class="text-xs text-slate-500">${ehEscape(n.tanggal)} ${ehEscape(n.waktu)}</span></div><p class="text-sm text-slate-700 mt-2">${ehEscape(n.pesan)}</p><div class="flex gap-2 mt-3">${n.dibaca?'':`<button class="text-blue-700 text-sm font-semibold" onclick="updateWaliNotification('${ehEscape(n.id)}','read')">Tandai dibaca</button>`}<button class="text-red-600 text-sm font-semibold" onclick="updateWaliNotification('${ehEscape(n.id)}','delete')">Hapus</button></div></div>`).join('') : '<div class="bg-white rounded-xl p-6 text-slate-500">Belum ada notifikasi kehadiran.</div>';
+            }).withFailureHandler(err=>{if(el)el.textContent=err.message||'Gagal terhubung';}).apiGetWaliNotifications(currentUser.sessionToken);
+        }
+        function updateWaliNotification(id,action) {
+            if(!currentUser || currentUser.role!=='wali')return;
+            google.script.run.withSuccessHandler(res=>{if(res.status==='success')loadWaliNotifications();else showToast(res.message||'Gagal memperbarui','error');}).withFailureHandler(err=>showToast(err.message,'error')).apiUpdateWaliNotification(currentUser.sessionToken,id,action);
+        }
+        function loadNotificationMonitoring() {
+            if(!currentUser || currentUser.role!=='admin')return;
+            const el=document.getElementById('eh-notif-admin');
+            google.script.run.withSuccessHandler(res=>{
+                if(res.status!=='success'){el.textContent=res.message;return;}
+                el.innerHTML=`<p class="font-semibold mb-4">Total notifikasi: ${res.total} | Belum dibaca: ${res.belumDibaca}</p><div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead><tr><th class="p-2">Tanggal</th><th class="p-2">NIS</th><th class="p-2">Jenis</th><th class="p-2">Status baca</th></tr></thead><tbody>${(res.data||[]).map(n=>`<tr class="border-t"><td class="p-2">${ehEscape(n.tanggal)}</td><td class="p-2">${ehEscape(n.nis)}</td><td class="p-2">${ehEscape(n.jenis)}</td><td class="p-2">${ehEscape(n.status)}</td></tr>`).join('')}</tbody></table></div>`;
+            }).withFailureHandler(err=>{el.textContent=err.message;}).apiGetNotificationMonitoring(currentUser.sessionToken);
+        }
+
+        setInterval(()=>{ if(currentUser && currentUser.role==='wali' && document.body.classList.contains('is-logged-in')) { const panel=document.getElementById('view-notifikasi'); if(!panel || !panel.classList.contains('active')) { google.script.run.withSuccessHandler(r=>{if(r.status==='success'){const b=document.getElementById('eh-notif-badge');if(b){b.textContent=r.unread||0;b.classList.toggle('hidden',!r.unread);}}}).apiGetWaliNotifications(currentUser.sessionToken); } } },60000);
         function switchView(viewId) {
             if(isScannerRunning) stopScanner();
             
@@ -1745,6 +1781,8 @@
                     if (!document.getElementById('manual-izin-tanggal').value) document.getElementById('manual-izin-tanggal').value = today;
                     loadIzinSakit();
                 }
+                if(viewId === 'notifikasi') loadWaliNotifications();
+                if(viewId === 'monitor-notifikasi' && currentUser.role === 'admin') loadNotificationMonitoring();
                 if(viewId === 'pengaturan') loadPengaturan();
                 if(viewId === 'piket') loadPiketData();
                 if(viewId === 'keterlambatan' && currentUser.role === 'admin') loadMonitoringTerlambat();
