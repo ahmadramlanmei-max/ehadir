@@ -123,6 +123,13 @@
             body.print-mode-rekap .print-table td { border: 1px solid #000 !important; color: #000 !important; padding: 8px !important; font-size: 12px !important; }
             body.print-mode-rekap .print-table th { background-color: #e2e8f0 !important; font-weight: bold !important; text-align: center; }
             body.print-mode-rekap .status-badge { background: none !important; color: #000 !important; padding: 0 !important; border: none !important; font-weight: bold; }
+            body.print-mode-late #view-keterlambatan { display:block !important; padding:1cm !important; }
+            body.print-mode-late #late-print-area { display:block !important; }
+            body.print-mode-late #late-print-area .grid { display:flex !important; gap:12px !important; }
+            body.print-mode-late #late-print-area .bg-white { border:1px solid #bbb !important; box-shadow:none !important; break-inside:avoid !important; }
+            body.print-mode-late #late-print-area table { width:100% !important; border-collapse:collapse !important; }
+            body.print-mode-late #late-print-area th, body.print-mode-late #late-print-area td { border:1px solid #777 !important; color:#000 !important; padding:6px !important; font-size:10px !important; }
+
         }
     </style>
     <!-- FIX KHUSUS: pastikan header/logo E-Hadir tetap terlihat pada tablet dan layar kecil -->
@@ -543,6 +550,9 @@
             </a>
             <a href="javascript:void(0)" onclick="switchView('piket')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="piket">
                 <i class="fas fa-calendar-check text-lg w-5 text-center"></i> Jadwal & Riwayat Piket
+            </a>
+            <a href="javascript:void(0)" onclick="switchView('keterlambatan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium admin-only" data-target="keterlambatan">
+                <i class="fas fa-clock text-lg w-5 text-center"></i> Monitoring Keterlambatan
             </a>
             <a href="javascript:void(0)" onclick="switchView('pengaturan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="pengaturan">
                 <i class="fas fa-cog text-lg w-5 text-center"></i> Pengaturan
@@ -1304,6 +1314,40 @@
                     <div class="mb-4"><h3 class="font-extrabold text-slate-800 text-lg">Riwayat Pelaksanaan Piket</h3><p class="text-sm text-slate-500">Admin dapat melihat seluruh riwayat; guru hanya melihat riwayat miliknya.</p></div>
                     <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">Tanggal</th><th class="p-3 text-left">Hari</th><th class="p-3 text-left">Nama Guru</th><th class="p-3 text-left">Username</th><th class="p-3 text-left">Waktu</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Catatan</th></tr></thead><tbody id="piket-history-body"><tr><td colspan="7" class="p-5 text-center text-slate-400">Memuat riwayat...</td></tr></tbody></table></div>
                 </div>
+            <div id="view-keterlambatan" class="view-section">
+                <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div><h2 class="text-2xl font-extrabold text-slate-800">Monitoring Keterlambatan Siswa</h2><p class="text-slate-500 font-medium">Pantau catatan siswa berstatus Terlambat berdasarkan batas hadir yang sudah berlaku.</p></div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" onclick="loadMonitoringTerlambat()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl"><i class="fas fa-sync-alt mr-2"></i>Muat Ulang</button>
+                        <button type="button" onclick="exportTerlambatCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl"><i class="fas fa-file-excel mr-2"></i>Ekspor Excel</button>
+                        <button type="button" onclick="printMonitoringTerlambat()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl"><i class="fas fa-file-pdf mr-2"></i>Cetak / PDF</button>
+                    </div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 mb-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Dari Tanggal</label><input type="date" id="late-from" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Sampai Tanggal</label><input type="date" id="late-to" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Kelas</label><select id="late-class" class="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"><option value="semua">Semua Kelas</option></select></div>
+                        <button type="button" onclick="loadMonitoringTerlambat()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl"><i class="fas fa-filter mr-2"></i>Terapkan Filter</button>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-3">Durasi keterlambatan dihitung dari selisih waktu scan dengan pengaturan Batas Hadir.</p>
+                </div>
+                <div id="late-print-area">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                        <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs uppercase font-bold text-slate-400">Jumlah Kejadian</p><p id="late-total" class="text-3xl font-extrabold text-amber-600 mt-2">0</p></div>
+                        <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs uppercase font-bold text-slate-400">Siswa Terlambat</p><p id="late-students" class="text-3xl font-extrabold text-blue-700 mt-2">0</p></div>
+                        <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs uppercase font-bold text-slate-400">Rata-rata Keterlambatan</p><p id="late-average" class="text-3xl font-extrabold text-slate-800 mt-2">0 menit</p></div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-3xl p-5 md:p-7 mb-5 shadow-sm">
+                        <h3 class="font-extrabold text-slate-800 text-lg mb-4">Daftar Catatan Keterlambatan</h3>
+                        <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">Tanggal</th><th class="p-3 text-left">Waktu Scan</th><th class="p-3 text-left">NIS</th><th class="p-3 text-left">Nama Siswa</th><th class="p-3 text-left">Kelas</th><th class="p-3 text-right">Terlambat</th></tr></thead><tbody id="late-table-body"><tr><td colspan="6" class="p-6 text-center text-slate-400">Atur filter lalu muat data.</td></tr></tbody></table></div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-sm">
+                        <h3 class="font-extrabold text-slate-800 text-lg mb-1">Siswa dengan Keterlambatan Terbanyak</h3><p class="text-sm text-slate-500 mb-4">Peringkat berdasarkan jumlah kejadian pada rentang tanggal terpilih.</p>
+                        <div class="overflow-x-auto"><table class="w-full min-w-[520px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">Peringkat</th><th class="p-3 text-left">Nama Siswa</th><th class="p-3 text-left">Kelas</th><th class="p-3 text-right">Jumlah</th></tr></thead><tbody id="late-ranking-body"><tr><td colspan="4" class="p-6 text-center text-slate-400">Belum ada data.</td></tr></tbody></table></div>
+                    </div>
+                </div>
+            </div>
             </div>
         </div><!-- penutup #content-area: seluruh view termasuk Manajemen Akun berada di area scroll -->
     </main>
@@ -1702,6 +1746,7 @@
                 }
                 if(viewId === 'pengaturan') loadPengaturan();
                 if(viewId === 'piket') loadPiketData();
+                if(viewId === 'keterlambatan' && currentUser.role === 'admin') loadMonitoringTerlambat();
             }
         }
 
@@ -4132,6 +4177,45 @@ async function catatPelaksanaanPiket(){
   const catatan=prompt('Catatan pelaksanaan piket (opsional):','');if(catatan===null)return;
   try{showLoading('Mencatat pelaksanaan piket...');const res=await piketCall('apiCatatPiket',[catatan]);hideLoading();showToast(res.message,'success');loadPiketData();}
   catch(e){hideLoading();showToast(e.message||'Gagal mencatat piket.','error');}
+}
+
+
+
+// ==========================================
+// CLIENT: MONITORING KETERLAMBATAN SISWA
+// ==========================================
+let monitoringTerlambatCache = [];
+function lateEscape(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function lateCall(method,args){return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(r=>{if(!r||r.status!=='success')return reject(new Error((r&&r.message)||'Gagal mengambil monitoring keterlambatan.'));resolve(r);}).withFailureHandler(e=>reject(new Error(e.message||'Koneksi server gagal.')))[method](currentUser.sessionToken,...(args||[])));}
+async function loadMonitoringTerlambat(){
+  if(!currentUser||currentUser.role!=='admin'){showToast('Fitur monitoring keterlambatan hanya untuk Admin.','error');return;}
+  const from=document.getElementById('late-from'),to=document.getElementById('late-to'),cls=document.getElementById('late-class');
+  const today=todayIsoLocal();
+  if(!from.value){from.value=today.slice(0,7)+'-01';}
+  if(!to.value){to.value=today;}
+  const body=document.getElementById('late-table-body');body.innerHTML='<tr><td colspan="6" class="p-6 text-center text-slate-400">Memuat data...</td></tr>';
+  try{
+    const res=await lateCall('apiGetLateMonitoring',[{tanggalMulai:from.value,tanggalSelesai:to.value,kelas:cls.value||'semua'}]);
+    monitoringTerlambatCache=res.data||[];
+    if(cls.options.length<=1){(res.kelas||[]).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;cls.appendChild(o);});}
+    document.getElementById('late-total').textContent=res.ringkasan.totalKejadian||0;
+    document.getElementById('late-students').textContent=res.ringkasan.totalSiswa||0;
+    document.getElementById('late-average').textContent=(res.ringkasan.rataRataMenit||0)+' menit';
+    body.innerHTML=monitoringTerlambatCache.length?monitoringTerlambatCache.map(x=>`<tr class="border-t border-slate-100"><td class="p-3">${lateEscape(x.tanggal)}</td><td class="p-3 font-semibold">${lateEscape(x.waktu)}</td><td class="p-3">${lateEscape(x.nis)}</td><td class="p-3 font-semibold">${lateEscape(x.nama)}</td><td class="p-3">${lateEscape(x.kelas)}</td><td class="p-3 text-right font-bold text-amber-700">${x.menitTerlambat} menit</td></tr>`).join(''):'<tr><td colspan="6" class="p-6 text-center text-slate-400">Tidak ada catatan keterlambatan pada filter ini.</td></tr>';
+    const rank=res.peringkat||[];document.getElementById('late-ranking-body').innerHTML=rank.length?rank.map((x,i)=>`<tr class="border-t border-slate-100"><td class="p-3 font-bold">${i+1}</td><td class="p-3 font-semibold">${lateEscape(x.nama)}</td><td class="p-3">${lateEscape(x.kelas)}</td><td class="p-3 text-right font-extrabold text-amber-700">${x.jumlah}</td></tr>`).join(''):'<tr><td colspan="4" class="p-6 text-center text-slate-400">Belum ada data.</td></tr>';
+  }catch(e){body.innerHTML='<tr><td colspan="6" class="p-6 text-center text-red-500">'+lateEscape(e.message)+'</td></tr>';showToast(e.message,'error');}
+}
+function exportTerlambatCSV(){
+  if(!monitoringTerlambatCache.length){showToast('Tidak ada data untuk diekspor.','info');return;}
+  const rows=[['Tanggal','Waktu Scan','NIS','Nama Siswa','Kelas','Menit Terlambat'],...monitoringTerlambatCache.map(x=>[x.tanggal,x.waktu,x.nis,x.nama,x.kelas,x.menitTerlambat])];
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='Monitoring_Keterlambatan_'+(document.getElementById('late-from').value||'')+'_'+(document.getElementById('late-to').value||'')+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function printMonitoringTerlambat(){
+  document.body.classList.add('print-mode-late');
+  const clean=()=>document.body.classList.remove('print-mode-late');
+  window.addEventListener('afterprint',clean,{once:true});window.print();setTimeout(clean,1500);
 }
 
 </script>
