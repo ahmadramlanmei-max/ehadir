@@ -541,6 +541,9 @@
             <a href="javascript:void(0)" onclick="switchView('kartu')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="kartu">
                 <i class="fas fa-id-card text-lg w-5 text-center"></i> Cetak Kartu QR
             </a>
+            <a href="javascript:void(0)" onclick="switchView('piket')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="piket">
+                <i class="fas fa-calendar-check text-lg w-5 text-center"></i> Jadwal & Riwayat Piket
+            </a>
             <a href="javascript:void(0)" onclick="switchView('pengaturan')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 text-slate-300 hover:text-white transition-all font-medium" data-target="pengaturan">
                 <i class="fas fa-cog text-lg w-5 text-center"></i> Pengaturan
             </a>
@@ -1272,6 +1275,36 @@
                 </div>
             </div>
 
+
+            <div id="view-piket" class="view-section">
+                <div class="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div><h2 class="text-2xl font-extrabold text-slate-800">Jadwal & Riwayat Guru Piket</h2><p class="text-slate-500 font-medium">Jadwal mingguan Senin–Sabtu dan pencatatan pelaksanaan piket guru.</p></div>
+                    <button type="button" onclick="loadPiketData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl"><i class="fas fa-sync-alt mr-2"></i>Muat Ulang</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs uppercase tracking-wider font-bold text-slate-400">Hari Ini</p><p id="piket-today-day" class="text-xl font-extrabold text-slate-800 mt-2">-</p><p id="piket-today-date" class="text-sm text-slate-500 mt-1">-</p></div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs uppercase tracking-wider font-bold text-slate-400">Petugas Terjadwal</p><p id="piket-today-total" class="text-3xl font-extrabold text-blue-700 mt-2">0</p></div>
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5"><p class="text-xs uppercase tracking-wider font-bold text-slate-400">Sudah Melaksanakan</p><p id="piket-today-done" class="text-3xl font-extrabold text-emerald-700 mt-2">0</p></div>
+                </div>
+                <div id="piket-admin-panel" class="hidden bg-white border border-slate-200 rounded-3xl p-5 md:p-7 mb-6 shadow-sm">
+                    <div class="mb-4"><h3 class="font-extrabold text-slate-800 text-lg">Pengaturan Jadwal Mingguan</h3><p class="text-sm text-slate-500">Admin dapat menetapkan beberapa guru pada setiap hari. Guru harus memiliki akun individual aktif dengan peran Guru.</p></div>
+                    <form id="form-piket-jadwal" onsubmit="submitPiketSchedule(event)" class="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-3 items-end">
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Hari</label><select id="piket-hari" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option></select></div>
+                        <div><label class="block text-xs font-bold text-slate-500 mb-1">Guru Piket</label><select id="piket-guru" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"><option value="">Memuat akun guru...</option></select></div>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded-xl"><i class="fas fa-plus mr-2"></i>Tambah</button>
+                    </form>
+                    <div class="mt-5 overflow-x-auto"><table class="w-full min-w-[600px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">Hari</th><th class="p-3 text-left">Nama Guru</th><th class="p-3 text-left">Username</th><th class="p-3 text-center">Aksi</th></tr></thead><tbody id="piket-schedule-body"><tr><td colspan="4" class="p-5 text-center text-slate-400">Memuat jadwal...</td></tr></tbody></table></div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-3xl p-5 md:p-7 mb-6 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"><div><h3 class="font-extrabold text-slate-800 text-lg">Petugas Piket Hari Ini</h3><p class="text-sm text-slate-500">Daftar petugas sesuai jadwal mingguan dan status pelaksanaannya.</p></div><div id="piket-action-area"></div></div>
+                    <div class="overflow-x-auto"><table class="w-full min-w-[520px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">No.</th><th class="p-3 text-left">Nama Guru</th><th class="p-3 text-left">Username</th><th class="p-3 text-center">Status</th></tr></thead><tbody id="piket-today-body"><tr><td colspan="4" class="p-5 text-center text-slate-400">Memuat...</td></tr></tbody></table></div>
+                    <p id="piket-today-note" class="text-xs text-slate-400 mt-3">Pencatatan dilakukan oleh guru yang login melalui tombol pelaksanaan piket.</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-3xl p-5 md:p-7 shadow-sm">
+                    <div class="mb-4"><h3 class="font-extrabold text-slate-800 text-lg">Riwayat Pelaksanaan Piket</h3><p class="text-sm text-slate-500">Admin dapat melihat seluruh riwayat; guru hanya melihat riwayat miliknya.</p></div>
+                    <div class="overflow-x-auto"><table class="w-full min-w-[720px] text-sm"><thead class="bg-slate-50 text-slate-500 uppercase text-xs"><tr><th class="p-3 text-left">Tanggal</th><th class="p-3 text-left">Hari</th><th class="p-3 text-left">Nama Guru</th><th class="p-3 text-left">Username</th><th class="p-3 text-left">Waktu</th><th class="p-3 text-left">Status</th><th class="p-3 text-left">Catatan</th></tr></thead><tbody id="piket-history-body"><tr><td colspan="7" class="p-5 text-center text-slate-400">Memuat riwayat...</td></tr></tbody></table></div>
+                </div>
+            </div>
         </div><!-- penutup #content-area: seluruh view termasuk Manajemen Akun berada di area scroll -->
     </main>
 
@@ -1668,6 +1701,7 @@
                     loadIzinSakit();
                 }
                 if(viewId === 'pengaturan') loadPengaturan();
+                if(viewId === 'piket') loadPiketData();
             }
         }
 
@@ -4033,6 +4067,73 @@ function submitAkunBaru(e){
 }
 // Hook menu lama tanpa mengganti implementasi switchView.
 (function(){const old=window.switchView;if(typeof old==='function'){window.switchView=function(id){old(id);if(id==='akun'&&currentUser&&currentUser.role==='admin')loadDaftarAkun();};}})();
+
+
+// ==========================================
+// CLIENT: JADWAL DAN RIWAYAT GURU PIKET
+// ==========================================
+let piketDataCache = null;
+function piketEscape(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function piketCall(method, args) {
+  return new Promise((resolve,reject)=>{
+    if(!currentUser || !currentUser.sessionToken) return reject(new Error('Sesi login tidak tersedia.'));
+    google.script.run.withSuccessHandler(res=>{
+      if(!res || res.status!=='success') return reject(new Error((res&&res.message)||'Permintaan fitur piket gagal.'));
+      resolve(res);
+    }).withFailureHandler(err=>reject(new Error((err&&err.message)||'Koneksi server gagal.')))[method](currentUser.sessionToken,...(args||[]));
+  });
+}
+async function loadPiketData() {
+  const todayBody=document.getElementById('piket-today-body');
+  if(todayBody) todayBody.innerHTML='<tr><td colspan="4" class="p-5 text-center text-slate-400">Memuat data piket...</td></tr>';
+  try {
+    const data=await piketCall('apiGetPiketData',[]); piketDataCache=data;
+    const admin=currentUser.role==='admin';
+    const panel=document.getElementById('piket-admin-panel'); if(panel) panel.classList.toggle('hidden',!admin);
+    document.getElementById('piket-today-day').textContent=data.hari||'-';
+    document.getElementById('piket-today-date').textContent=data.tanggal||'-';
+    const today=data.todaySchedule||[];
+    const done=today.filter(x=>x.dilaksanakan).length;
+    document.getElementById('piket-today-total').textContent=today.length;
+    document.getElementById('piket-today-done').textContent=done;
+    if(todayBody) todayBody.innerHTML=today.length?today.map((x,i)=>`<tr class="border-t border-slate-100"><td class="p-3">${i+1}</td><td class="p-3 font-semibold text-slate-800">${piketEscape(x.nama)}</td><td class="p-3 text-slate-500">${piketEscape(x.username)}</td><td class="p-3 text-center">${x.dilaksanakan?'<span class="inline-flex rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold">Dilaksanakan</span>':'<span class="inline-flex rounded-full bg-amber-50 text-amber-700 px-3 py-1 text-xs font-bold">Belum dicatat</span>'}</td></tr>`).join(''):'<tr><td colspan="4" class="p-6 text-center text-slate-400">Tidak ada guru yang dijadwalkan piket hari ini.</td></tr>';
+    const own=today.find(x=>String(x.username).toLowerCase()===String(currentUser.username).toLowerCase());
+    const action=document.getElementById('piket-action-area');
+    if(action){
+      if(currentUser.role==='guru' && own && !own.dilaksanakan) action.innerHTML='<button type="button" onclick="catatPelaksanaanPiket()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded-xl"><i class="fas fa-clipboard-check mr-2"></i>Catat Saya Sudah Piket</button>';
+      else if(currentUser.role==='guru' && own && own.dilaksanakan) action.innerHTML='<span class="text-emerald-700 font-bold text-sm"><i class="fas fa-check-circle mr-1"></i>Piket Anda sudah tercatat</span>';
+      else if(currentUser.role==='guru') action.innerHTML='<span class="text-slate-400 text-sm">Anda tidak dijadwalkan piket hari ini.</span>';
+      else action.innerHTML='<span class="text-slate-400 text-sm">Panel pengelolaan jadwal tersedia khusus Admin.</span>';
+    }
+    const scheduleBody=document.getElementById('piket-schedule-body');
+    if(scheduleBody){
+      const order=['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+      const rows=(data.schedule||[]).slice().sort((a,b)=>order.indexOf(a.hari)-order.indexOf(b.hari)||a.nama.localeCompare(b.nama,'id'));
+      scheduleBody.innerHTML=rows.length?rows.map(x=>`<tr class="border-t border-slate-100"><td class="p-3 font-bold">${piketEscape(x.hari)}</td><td class="p-3">${piketEscape(x.nama)}</td><td class="p-3 text-slate-500">${piketEscape(x.username)}</td><td class="p-3 text-center">${admin?`<button type="button" onclick="hapusJadwalPiket('${piketEscape(x.id)}')" class="text-red-600 hover:bg-red-50 px-3 py-2 rounded-lg font-bold"><i class="fas fa-trash mr-1"></i>Hapus</button>`:'-'}</td></tr>`).join(''):'<tr><td colspan="4" class="p-6 text-center text-slate-400">Jadwal mingguan belum dibuat.</td></tr>';
+    }
+    if(admin){
+      const select=document.getElementById('piket-guru');
+      if(select){const prior=select.value;select.innerHTML='<option value="">Pilih guru...</option>'+(data.teachers||[]).map(t=>`<option value="${piketEscape(t.username)}">${piketEscape(t.nama)} (${piketEscape(t.username)})</option>`).join('');if([...select.options].some(o=>o.value===prior))select.value=prior;}
+    }
+    const historyBody=document.getElementById('piket-history-body');
+    if(historyBody){const rows=data.history||[];historyBody.innerHTML=rows.length?rows.map(x=>`<tr class="border-t border-slate-100"><td class="p-3">${piketEscape(x.tanggal)}</td><td class="p-3">${piketEscape(x.hari)}</td><td class="p-3 font-semibold">${piketEscape(x.nama)}</td><td class="p-3 text-slate-500">${piketEscape(x.username)}</td><td class="p-3">${piketEscape(x.waktu)}</td><td class="p-3"><span class="text-emerald-700 font-bold">${piketEscape(x.status)}</span></td><td class="p-3">${piketEscape(x.catatan||'-')}</td></tr>`).join(''):'<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada riwayat pelaksanaan piket.</td></tr>';}
+  } catch(e){showToast(e.message||'Gagal memuat data piket.','error');if(todayBody)todayBody.innerHTML='<tr><td colspan="4" class="p-5 text-center text-red-500">'+piketEscape(e.message)+'</td></tr>';}
+}
+async function submitPiketSchedule(e){
+  e.preventDefault();const hari=document.getElementById('piket-hari').value;const username=document.getElementById('piket-guru').value;
+  if(!username){showToast('Pilih akun guru terlebih dahulu.','error');return;}
+  try{showLoading('Menyimpan jadwal piket...');const res=await piketCall('apiAddPiketSchedule',[{hari,username}]);hideLoading();showToast(res.message,'success');document.getElementById('form-piket-jadwal').reset();loadPiketData();}
+  catch(err){hideLoading();showToast(err.message||'Gagal menyimpan jadwal.','error');}
+}
+async function hapusJadwalPiket(id){if(!confirm('Hapus jadwal piket ini?'))return;try{showLoading('Menghapus jadwal...');const res=await piketCall('apiDeletePiketSchedule',[id]);hideLoading();showToast(res.message,'success');loadPiketData();}catch(e){hideLoading();showToast(e.message||'Gagal menghapus jadwal.','error');}}
+async function catatPelaksanaanPiket(){
+  const catatan=prompt('Catatan pelaksanaan piket (opsional):','');if(catatan===null)return;
+  try{showLoading('Mencatat pelaksanaan piket...');const res=await piketCall('apiCatatPiket',[catatan]);hideLoading();showToast(res.message,'success');loadPiketData();}
+  catch(e){hideLoading();showToast(e.message||'Gagal mencatat piket.','error');}
+}
+
 </script>
 </body>
 </html>
