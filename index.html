@@ -6,6 +6,7 @@
     <title>E-Hadir Absensi Sekolah</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -1063,8 +1064,11 @@
                             <button class="ortu-hide flex-1 bg-purple-600 text-white hover:bg-purple-700 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm" onclick="showModal('modal-izin')">
                                 <i class="fas fa-notes-medical"></i> Izin/Sakit
                             </button>
-                            <button class="flex-1 bg-slate-800 text-white hover:bg-slate-900 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm" onclick="printRekap()">
-                                <i class="fas fa-print"></i> Cetak PDF
+                            <button class="ortu-hide flex-1 bg-emerald-700 text-white hover:bg-emerald-800 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm" onclick="exportRekapExcel()">
+                                <i class="fas fa-file-excel"></i> Excel
+                            </button>
+                            <button class="ortu-hide flex-1 bg-slate-800 text-white hover:bg-slate-900 font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 text-sm" onclick="printRekap()">
+                                <i class="fas fa-file-pdf"></i> Cetak PDF
                             </button>
                         </div>
                     </div>
@@ -2872,6 +2876,128 @@
             });
         }
 
+        // Ekspor laporan resmi ke XLSX. Mengambil hasil filter yang sedang tampil,
+        // sehingga PDF dan Excel menggunakan periode/kelas yang sama.
+        function exportRekapExcel() {
+            if (!currentUser || !['admin', 'guru'].includes(String(currentUser.role || '').toLowerCase())) {
+                showToast('Ekspor laporan hanya tersedia untuk admin dan petugas sekolah.', 'error');
+                return;
+            }
+            if (typeof XLSX === 'undefined') {
+                showToast('Komponen Excel belum termuat. Periksa koneksi internet lalu muat ulang aplikasi.', 'error');
+                return;
+            }
+
+            const type = document.getElementById('rekap-tipe')?.value || 'semua';
+            const isSummary = type === 'bulanan' || type === 'semester';
+            const table = document.getElementById(isSummary ? 'table-rekap-summary' : 'table-rekap-log');
+            if (!table) {
+                showToast('Tabel laporan tidak ditemukan.', 'error');
+                return;
+            }
+
+            const school = (document.getElementById('header-school-name')?.innerText || 'SMP NEGERI 3 BUKIT RAYA').trim();
+            const subtitle = (document.getElementById('print-subtitle')?.innerText || 'Semua Rekam Data Absensi').trim();
+            const kelas = document.getElementById('rekap-filter-kelas')?.value || 'semua';
+            const printedAt = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+            const reportTitle = isSummary ? 'REKAPITULASI KEHADIRAN SISWA' : 'LAPORAN DETAIL KEHADIRAN SISWA';
+
+            const rows = [];
+            table.querySelectorAll('tr').forEach((tr) => {
+                const cells = Array.from(tr.querySelectorAll('th,td')).map(td =>
+                    String(td.innerText || '').replace(/\s+/g, ' ').trim()
+                );
+                if (cells.length && cells.some(Boolean)) rows.push(cells);
+            });
+            if (rows.length <= 1) {
+                showToast('Belum ada data laporan untuk diekspor.', 'error');
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            const cover = [
+                [school],
+                ['LAPORAN ADMINISTRASI KEHADIRAN SISWA'],
+                [reportTitle],
+                [subtitle],
+                ['Filter kelas: ' + (kelas === 'semua' ? 'Semua Kelas' : kelas)],
+                ['Dicetak pada: ' + printedAt + ' WIB'],
+                [],
+                ['Keterangan', 'Laporan diekspor dari aplikasi E-Hadir.'],
+                ['Sumber data', 'Database absensi sekolah'],
+                ['Akses', 'Khusus Admin/Petugas']
+            ];
+            const wsCover = XLSX.utils.aoa_to_sheet(cover);
+            wsCover['!merges'] = [
+                {s:{r:0,c:0},e:{r:0,c:5}},
+                {s:{r:1,c:0},e:{r:1,c:5}},
+                {s:{r:2,c:0},e:{r:2,c:5}},
+                {s:{r:3,c:0},e:{r:3,c:5}}
+            ];
+            wsCover['!cols'] = [{wch:24},{wch:58},{wch:18},{wch:18},{wch:18},{wch:18}];
+            wsCover['!rows'] = [{hpt:28},{hpt:22},{hpt:22},{hpt:22},{hpt:20},{hpt:20}];
+            ['A1','A2','A3','A4'].forEach((cell, idx) => {
+                if (wsCover[cell]) wsCover[cell].s = {
+                    font:{bold:true,sz:idx===0?16:idx===1?13:12,color:{rgb:'17365D'}},
+                    alignment:{horizontal:'center',vertical:'center'}
+                };
+            });
+            XLSX.utils.book_append_sheet(wb, wsCover, 'Identitas Laporan');
+
+            const wsData = XLSX.utils.aoa_to_sheet([
+                [school],
+                [reportTitle],
+                [subtitle],
+                ['Dicetak: ' + printedAt + ' WIB'],
+                [],
+                ...rows
+            ]);
+            const headerRow = 6;
+            const colCount = Math.max(...rows.map(r => r.length));
+            wsData['!merges'] = [
+                {s:{r:0,c:0},e:{r:0,c:Math.max(0,colCount-1)}},
+                {s:{r:1,c:0},e:{r:1,c:Math.max(0,colCount-1)}},
+                {s:{r:2,c:0},e:{r:2,c:Math.max(0,colCount-1)}},
+                {s:{r:3,c:0},e:{r:3,c:Math.max(0,colCount-1)}}
+            ];
+            wsData['!cols'] = Array.from({length:colCount}, (_,i) => {
+                const maxLen = Math.max(12, ...rows.map(r => String(r[i] || '').length));
+                return {wch:Math.min(34, maxLen + 3)};
+            });
+            wsData['!autofilter'] = {ref:XLSX.utils.encode_range({s:{r:headerRow-1,c:0},e:{r:headerRow-1+rows.length-1,c:colCount-1}})};
+            wsData['!views'] = [{state:'frozen', ySplit:headerRow, xSplit:0}];
+            for (let c=0;c<colCount;c++) {
+                const cell = XLSX.utils.encode_cell({r:headerRow-1,c});
+                if (wsData[cell]) wsData[cell].s = {
+                    fill:{fgColor:{rgb:'17365D'}},
+                    font:{bold:true,color:{rgb:'FFFFFF'}},
+                    alignment:{horizontal:'center',vertical:'center',wrapText:true},
+                    border:{top:{style:'thin',color:{rgb:'B8C7D9'}},bottom:{style:'thin',color:{rgb:'B8C7D9'}}}
+                };
+            }
+            for (let r=headerRow;r<headerRow+rows.length;r++) {
+                for (let c=0;c<colCount;c++) {
+                    const cell=wsData[XLSX.utils.encode_cell({r,c})];
+                    if (cell) cell.s = {
+                        alignment:{vertical:'center',wrapText:true},
+                        border:{bottom:{style:'hair',color:{rgb:'D9E2F3'}}}
+                    };
+                }
+            }
+            ['A1','A2','A3','A4'].forEach((cell,idx) => {
+                if(wsData[cell]) wsData[cell].s = {
+                    font:{bold:true,sz:idx===0?15:idx===1?13:11,color:{rgb:'17365D'}},
+                    alignment:{horizontal:'center',vertical:'center'}
+                };
+            });
+            XLSX.utils.book_append_sheet(wb, wsData, isSummary ? 'Rekap Siswa' : 'Detail Absensi');
+
+            const safePeriod = subtitle.replace(/[^\w\- ]/g,'').replace(/\s+/g,'_').slice(0,45);
+            const fileName = 'E-Hadir_' + (isSummary?'Rekap':'Detail') + '_' + safePeriod + '.xlsx';
+            XLSX.writeFile(wb, fileName, {cellStyles:true});
+            showToast('Laporan Excel berhasil disiapkan.', 'success');
+        }
+
         function printRekap() {
             const sourceArea = document.getElementById('print-rekap-area');
             if (!sourceArea) {
@@ -2896,6 +3022,22 @@
             if (headerCopy) {
                 headerCopy.classList.remove('hidden');
                 headerCopy.removeAttribute('style');
+                const schoolLine = headerCopy.querySelector('#print-school-name');
+                if (schoolLine) schoolLine.textContent = (document.getElementById('header-school-name')?.innerText || 'SMP NEGERI 3 BUKIT RAYA').trim();
+                let institution = headerCopy.querySelector('.report-institution-line');
+                if (!institution) {
+                    institution = document.createElement('p');
+                    institution.className = 'report-institution-line';
+                    institution.textContent = 'PEMERINTAH KABUPATEN KATINGAN • DINAS PENDIDIKAN';
+                    headerCopy.insertBefore(institution, headerCopy.firstChild);
+                }
+                let printMeta = headerCopy.querySelector('.report-print-meta');
+                if (!printMeta) {
+                    printMeta = document.createElement('p');
+                    printMeta.className = 'report-print-meta';
+                    headerCopy.appendChild(printMeta);
+                }
+                printMeta.textContent = 'Dicetak: ' + new Date().toLocaleString('id-ID', {timeZone:'Asia/Jakarta'}) + ' WIB';
             }
 
             const logTable = areaCopy.querySelector('#table-rekap-log');
@@ -2994,6 +3136,19 @@
                     border: 0 !important;
                     border-bottom: 1.2px solid #111 !important;
                     text-align: center !important;
+                }
+                #rekap-print-header .report-institution-line {
+                    margin: 0 0 2mm !important;
+                    font-size: 8.5pt !important;
+                    font-weight: 700 !important;
+                    letter-spacing: .3px !important;
+                    text-align: center !important;
+                }
+                #rekap-print-header .report-print-meta {
+                    margin: 2mm 0 0 !important;
+                    font-size: 7.5pt !important;
+                    color: #444 !important;
+                    text-align: right !important;
                 }
                 #rekap-print-header h2 {
                     margin: 0 0 1mm !important;
