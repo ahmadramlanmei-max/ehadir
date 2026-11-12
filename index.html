@@ -802,7 +802,7 @@
                 </div>
             </div>
 
-<section id="view-notifikasi" class="view-section p-4 md:p-8"><div class="max-w-4xl mx-auto"><div class="flex items-center justify-between gap-3 mb-6"><h2 class="text-2xl font-bold text-slate-800"><i class="fas fa-bell text-blue-600 mr-2"></i>Notifikasi Kehadiran Anak</h2><button onclick="loadWaliNotifications()" class="bg-blue-600 text-white px-4 py-2 rounded-xl">Muat ulang</button></div><div id="eh-notif-list" class="space-y-3">Memuat notifikasi...</div></div></section>
+<section id="view-notifikasi" class="view-section p-4 md:p-8"><div class="max-w-4xl mx-auto"><div class="flex items-center justify-between gap-3 mb-6"><h2 class="text-2xl font-bold text-slate-800"><i class="fas fa-bell text-blue-600 mr-2"></i>Notifikasi Kehadiran Anak</h2><button onclick="loadWaliNotifications()" class="bg-blue-600 text-white px-4 py-2 rounded-xl">Muat ulang</button></div><div class="mb-4 flex flex-wrap gap-2"><button id="eh-push-enable" onclick="enableWaliPush()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl">Aktifkan Notifikasi HP</button><button id="eh-push-disable" onclick="disableWaliPush()" class="hidden bg-slate-600 hover:bg-slate-700 text-white font-semibold px-4 py-2 rounded-xl">Nonaktifkan Notifikasi HP</button><span id="eh-push-status" class="text-sm text-slate-500 self-center" aria-live="polite"></span></div><div id="eh-notif-list" class="space-y-3">Memuat notifikasi...</div></div></section>
 <section id="view-monitor-notifikasi" class="view-section p-4 md:p-8"><div class="max-w-5xl mx-auto"><h2 class="text-2xl font-bold text-slate-800 mb-4">Monitoring Notifikasi Wali</h2><div id="eh-notif-admin" class="bg-white rounded-xl p-5">Memuat...</div></div></section>
 
             <div id="view-dashboard" class="view-section">
@@ -1513,6 +1513,43 @@
 
 <script>
         // === STATE & VARIABEL GLOBAL ===
+        const EHADIR_VAPID_PUBLIC_KEY = 'BHvz1yaqugYJLKU50A3bit_26UJiqHN34V8TlfzB6dPr-qiqaROvbVbXQuzTE-AQJnRTgLiCEjzfVQdAUYJvkHk';
+        function ehUrlBase64ToUint8Array(base64String) { const padding='='.repeat((4-base64String.length%4)%4); const raw=atob((base64String+padding).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
+        async function enableWaliPush() {
+            const status=document.getElementById('eh-push-status');
+            try {
+                if(!currentUser||currentUser.role!=='wali'||!currentUser.sessionToken) throw new Error('Silakan login menggunakan akun orang tua/wali.');
+                if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)) throw new Error('Browser ini belum mendukung notifikasi Web Push. Gunakan Chrome Android terbaru.');
+                if(!window.isSecureContext) throw new Error('Notifikasi memerlukan HTTPS. Buka aplikasi melalui alamat GitHub Pages.');
+                if(status) status.textContent='Meminta izin notifikasi...';
+                const permission=await Notification.requestPermission(); if(permission!=='granted') throw new Error('Izin notifikasi belum diberikan. Aktifkan izin situs melalui pengaturan Chrome.');
+                const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./'}); await navigator.serviceWorker.ready;
+                let sub=await reg.pushManager.getSubscription();
+                if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:ehUrlBase64ToUint8Array(EHADIR_VAPID_PUBLIC_KEY)});
+                const res=await fetch(window.EHADIR_WORKER_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'apiPushRegister',args:[currentUser.sessionToken,sub.toJSON(),navigator.userAgent]})});
+                const data=await res.json(); if(!res.ok||data.status!=='success') throw new Error(data.message||'Gagal menyimpan perangkat.');
+                if(status) status.textContent='Notifikasi HP aktif pada perangkat ini.';
+                document.getElementById('eh-push-enable')?.classList.add('hidden'); document.getElementById('eh-push-disable')?.classList.remove('hidden');
+                showToast('Notifikasi HP berhasil diaktifkan.','success');
+            } catch(e) { if(status) status.textContent=e.message||String(e); showToast(e.message||'Gagal mengaktifkan notifikasi.','error'); }
+        }
+        async function disableWaliPush() {
+            const status=document.getElementById('eh-push-status');
+            try {
+                if(!currentUser||currentUser.role!=='wali') throw new Error('Akun wali diperlukan.');
+                const reg=await navigator.serviceWorker.getRegistration('./'); const sub=reg&&await reg.pushManager.getSubscription();
+                if(!sub){if(status)status.textContent='Tidak ada perangkat aktif.';return;}
+                const res=await fetch(window.EHADIR_WORKER_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'apiPushUnregister',args:[currentUser.sessionToken,sub.endpoint]})});
+                const data=await res.json(); if(data.status!=='success') throw new Error(data.message||'Gagal menonaktifkan.');
+                await sub.unsubscribe(); if(status)status.textContent='Notifikasi HP dinonaktifkan.';
+                document.getElementById('eh-push-enable')?.classList.remove('hidden'); document.getElementById('eh-push-disable')?.classList.add('hidden');
+                showToast('Notifikasi HP dinonaktifkan.','success');
+            } catch(e){if(status)status.textContent=e.message||String(e);showToast(e.message||'Gagal menonaktifkan.','error');}
+        }
+        async function refreshWaliPushStatus(){
+            if(!currentUser||currentUser.role!=='wali')return;
+            try{const reg=await navigator.serviceWorker.getRegistration('./');const sub=reg&&await reg.pushManager.getSubscription();const on=!!sub;document.getElementById('eh-push-enable')?.classList.toggle('hidden',on);document.getElementById('eh-push-disable')?.classList.toggle('hidden',!on);const s=document.getElementById('eh-push-status');if(s)s.textContent=on?'Notifikasi HP terdaftar pada perangkat ini.':'Notifikasi HP belum diaktifkan pada perangkat ini.';}catch(e){}
+        }
         let currentUser = null;
         let html5QrCode = null;
         let isScannerRunning = false;
@@ -1653,7 +1690,7 @@
                 else el.classList.remove('hidden');
             });
             
-            if (currentUser.role === 'wali') { switchView('dashboard'); loadWaliNotifications(); }
+            if (currentUser.role === 'wali') { switchView('dashboard'); loadWaliNotifications(); refreshWaliPushStatus(); }
             else switchView('scanner');
             
             if (typeof google !== 'undefined') {
@@ -1712,6 +1749,7 @@
         function ehEscape(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
         function loadWaliNotifications() {
             if (!currentUser || currentUser.role !== 'wali') return;
+            refreshWaliPushStatus();
             const el=document.getElementById('eh-notif-list');
             if(el) el.innerHTML='<p class="text-slate-500">Memuat notifikasi...</p>';
             google.script.run.withSuccessHandler(res=>{
