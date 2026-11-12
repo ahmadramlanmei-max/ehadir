@@ -6,9 +6,9 @@
     <title>E-Hadir Absensi Sekolah</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-    <script defer src="https://unpkg.com/html5-qrcode"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
@@ -1786,7 +1786,7 @@
                 else el.classList.remove('hidden');
             });
             
-            if (currentUser.role === 'wali') { switchView('dashboard'); loadWaliNotifications(); } // loadWaliNotifications sudah memeriksa status Push.
+            if (currentUser.role === 'wali') { switchView('dashboard'); loadWaliNotifications(); refreshWaliPushStatus(); }
             else switchView('scanner');
             
             if (typeof google !== 'undefined') {
@@ -4537,9 +4537,91 @@ function exportTerlambatCSV(){
   a.href=url;a.download='Monitoring_Keterlambatan_'+(document.getElementById('late-from').value||'')+'_'+(document.getElementById('late-to').value||'')+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
 function printMonitoringTerlambat(){
-  document.body.classList.add('print-mode-late');
-  const clean=()=>document.body.classList.remove('print-mode-late');
-  window.addEventListener('afterprint',clean,{once:true});window.print();setTimeout(clean,1500);
+  const source = document.getElementById('late-print-area');
+  if (!source) {
+    showToast('Area monitoring keterlambatan tidak ditemukan.', 'error');
+    return;
+  }
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    showToast('Jendela cetak diblokir. Izinkan pop-up untuk aplikasi ini, lalu coba lagi.', 'error');
+    return;
+  }
+
+  // Cetak hanya bagian laporan; sidebar, menu, filter, dan tombol aplikasi tidak disertakan.
+  const report = source.cloneNode(true);
+  report.id = 'late-report-print';
+  report.querySelectorAll('.overflow-x-auto').forEach(el => {
+    el.className = 'late-print-table-wrap';
+  });
+  report.querySelectorAll('table').forEach((table, index) => {
+    table.className = 'late-print-table';
+    table.id = index === 0 ? 'late-detail-table' : 'late-ranking-table';
+    table.removeAttribute('style');
+  });
+
+  const from = document.getElementById('late-from')?.value || '-';
+  const to = document.getElementById('late-to')?.value || '-';
+  const clsSelect = document.getElementById('late-class');
+  const kelas = clsSelect?.selectedOptions?.[0]?.textContent || 'Semua Kelas';
+  const fmt = value => {
+    if (!value || value === '-') return value;
+    const p = value.split('-');
+    return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : value;
+  };
+
+  const css = `
+    @page { size: A4 landscape; margin: 10mm; }
+    *, *::before, *::after { box-sizing: border-box !important; }
+    html, body { margin:0 !important; padding:0 !important; width:100% !important; background:#fff !important; color:#111827 !important; font-family:Arial,Helvetica,sans-serif !important; }
+    body { display:block !important; }
+    .late-print-header { text-align:center; border-bottom:1.5px solid #111827; padding-bottom:5mm; margin-bottom:5mm; }
+    .late-print-header h1 { margin:0 0 2mm; font-size:16pt; font-weight:700; }
+    .late-print-header p { margin:1mm 0; font-size:9pt; }
+    #late-report-print { width:100% !important; max-width:100% !important; margin:0 !important; padding:0 !important; }
+    #late-report-print .grid { display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; gap:4mm !important; margin:0 0 5mm !important; }
+    #late-report-print .grid > div { border:1px solid #9ca3af !important; border-radius:2mm !important; padding:3mm 4mm !important; background:#fff !important; box-shadow:none !important; }
+    #late-report-print .grid p:first-child { margin:0 !important; font-size:8pt !important; color:#374151 !important; }
+    #late-report-print .grid p:last-child { margin:2mm 0 0 !important; font-size:17pt !important; font-weight:700 !important; color:#111827 !important; }
+    #late-report-print > div:not(.grid) { border:1px solid #9ca3af !important; border-radius:2mm !important; padding:4mm !important; margin:0 0 5mm !important; background:#fff !important; box-shadow:none !important; }
+    #late-report-print h3 { margin:0 0 3mm !important; font-size:11pt !important; color:#111827 !important; }
+    #late-report-print p { font-size:8pt !important; }
+    .late-print-table-wrap { display:block !important; width:100% !important; max-width:100% !important; overflow:visible !important; }
+    .late-print-table { display:table !important; width:100% !important; max-width:100% !important; min-width:0 !important; table-layout:fixed !important; border-collapse:collapse !important; border-spacing:0 !important; font-size:8.5pt !important; }
+    .late-print-table th, .late-print-table td { border:1px solid #374151 !important; padding:2.2mm 2mm !important; color:#111827 !important; font-size:8.5pt !important; line-height:1.2 !important; vertical-align:middle !important; white-space:normal !important; overflow-wrap:anywhere !important; word-break:normal !important; }
+    .late-print-table th { background:#e5e7eb !important; font-weight:700 !important; text-align:center !important; }
+    #late-detail-table th:nth-child(1), #late-detail-table td:nth-child(1) { width:14% !important; }
+    #late-detail-table th:nth-child(2), #late-detail-table td:nth-child(2) { width:13% !important; }
+    #late-detail-table th:nth-child(3), #late-detail-table td:nth-child(3) { width:12% !important; }
+    #late-detail-table th:nth-child(4), #late-detail-table td:nth-child(4) { width:31% !important; }
+    #late-detail-table th:nth-child(5), #late-detail-table td:nth-child(5) { width:12% !important; }
+    #late-detail-table th:nth-child(6), #late-detail-table td:nth-child(6) { width:18% !important; }
+    #late-ranking-table th:nth-child(1), #late-ranking-table td:nth-child(1) { width:15% !important; }
+    #late-ranking-table th:nth-child(2), #late-ranking-table td:nth-child(2) { width:50% !important; }
+    #late-ranking-table th:nth-child(3), #late-ranking-table td:nth-child(3) { width:17% !important; }
+    #late-ranking-table th:nth-child(4), #late-ranking-table td:nth-child(4) { width:18% !important; }
+    #late-report-print .late-print-table td:nth-child(1),
+    #late-report-print .late-print-table td:nth-child(2),
+    #late-report-print .late-print-table td:nth-child(3) { text-align:left !important; }
+    #late-report-print .late-print-table td:last-child { text-align:center !important; }
+    thead { display:table-header-group !important; }
+    tr { break-inside:avoid !important; page-break-inside:avoid !important; }
+    @media print {
+      html, body { width:100% !important; }
+      #late-report-print { width:100% !important; }
+    }
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitoring Keterlambatan Siswa</title><style>${css}</style></head><body><header class="late-print-header"><h1>MONITORING KETERLAMBATAN SISWA</h1><p>Periode: ${lateEscape(fmt(from))} s.d. ${lateEscape(fmt(to))} &nbsp; | &nbsp; Kelas: ${lateEscape(kelas)}</p><p>Dicetak: ${new Date().toLocaleString('id-ID')}</p></header><main id="late-print-root"></main></body></html>`);
+  printWindow.document.close();
+  printWindow.document.getElementById('late-print-root').appendChild(report);
+  printWindow.onafterprint = () => { try { printWindow.close(); } catch(e) {} };
+  setTimeout(() => {
+    try { printWindow.focus(); printWindow.print(); }
+    catch(e) { showToast('Pratinjau cetak gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error'); }
+  }, 400);
 }
 
 </script>
