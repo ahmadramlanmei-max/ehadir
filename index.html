@@ -3339,7 +3339,19 @@
             const triggerPrint = () => {
                 try {
                     printWindow.focus();
-                    printWindow.print();
+                    const logoImage = printWindow.document.getElementById('print-school-logo');
+                    const doPrint = () => {
+                        try { printWindow.print(); }
+                        catch (err) { showToast('Pratinjau cetak gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error'); }
+                    };
+                    // Tunggu logo selesai dimuat agar tidak hilang pada halaman pertama PDF.
+                    if (logoImage && !logoImage.complete) {
+                        logoImage.onload = doPrint;
+                        logoImage.onerror = doPrint;
+                        setTimeout(doPrint, 2500);
+                    } else {
+                        setTimeout(doPrint, 150);
+                    }
                 } catch (err) {
                     showToast('Pratinjau cetak gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error');
                 }
