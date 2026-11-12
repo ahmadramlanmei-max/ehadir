@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generator VAPID E-Hadir</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f1f5f9;
+  padding: 20px;
+  max-width: 650px;
+  margin: 30px auto;
+  color: #1e293b;
+}
+.card {
+  background: white;
+  padding: 24px;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px #0001;
+}
+button {
+  background: #2563eb;
+  color: white;
+  border: 0;
+  padding: 12px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin: 5px 0;
+}
+textarea {
+  width: 100%;
+  min-height: 85px;
+  box-sizing: border-box;
+  margin: 8px 0;
+  padding: 10px;
+  overflow-wrap: anywhere;
+}
+label { font-weight: bold; }
+.note { color: #64748b; font-size: 13px; }
+#status { font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Generator Kunci VAPID E-Hadir</h2>
+  <p>Buat pasangan kunci keamanan untuk Push Notification.</p>
+
+  <button onclick="generateKeys()">Buat Kunci VAPID</button>
+  <p id="status"></p>
+
+  <label>Public Key</label>
+  <textarea id="publicKey" readonly></textarea>
+  <button onclick="copyValue('publicKey')">Salin Public Key</button>
+
+  <br><br>
+  <label>Private Key</label>
+  <textarea id="privateKey" readonly></textarea>
+  <button onclick="copyValue('privateKey')">Salin Private Key</button>
+
+  <p class="note">
+    PRIVATE KEY ADALAH RAHASIA.
+    Jangan kirimkan kepada siapa pun dan jangan
+    memasukkannya ke dalam file GitHub.
+  </p>
+</div>
+
+<script>
+function base64Url(bytes) {
+  let binary = '';
+  for (const b of bytes) {
+    binary += String.fromCharCode(b);
+  }
+  return btoa(binary)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function decodeBase64Url(value) {
+  let s = value.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  return Uint8Array.from(atob(s), c => c.charCodeAt(0));
+}
+
+async function generateKeys() {
+  const status = document.getElementById('status');
+  const pub = document.getElementById('publicKey');
+  const priv = document.getElementById('privateKey');
+
+  pub.value = '';
+  priv.value = '';
+  status.textContent = 'Sedang membuat kunci...';
+
+  try {
+    if (!crypto.subtle) {
+      throw new Error('Browser tidak mendukung Web Crypto atau halaman belum menggunakan HTTPS.');
+    }
+
+    const pair = await crypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign', 'verify']
+    );
+
+    const jwk = await crypto.subtle.exportKey('jwk', pair.privateKey);
+
+    const x = decodeBase64Url(jwk.x);
+    const y = decodeBase64Url(jwk.y);
+    const d = decodeBase64Url(jwk.d);
+
+    if (x.length !== 32 || y.length !== 32 || d.length !== 32) {
+      throw new Error('Panjang kunci tidak sesuai.');
+    }
+
+    const publicBytes = new Uint8Array(65);
+    publicBytes[0] = 4;
+    publicBytes.set(x, 1);
+    publicBytes.set(y, 33);
+
+    pub.value = base64Url(publicBytes);
+    priv.value = base64Url(d);
+
+    status.textContent = 'Berhasil! Pasangan kunci VAPID telah dibuat.';
+    status.style.color = 'green';
+
+  } catch (error) {
+    status.textContent = 'Gagal membuat kunci: ' + error.message;
+    status.style.color = 'red';
+  }
+}
+
+async function copyValue(id) {
+  const value = document.getElementById(id).value;
+  if (!value) {
+    alert('Buat kunci terlebih dahulu.');
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(value);
+    alert('Berhasil disalin.');
+  } catch (error) {
+    alert('Gagal menyalin. Silakan pilih teks lalu tekan Ctrl+C.');
+  }
+}
+</script>
+</body>
+</html>
