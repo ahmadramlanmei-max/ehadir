@@ -1165,6 +1165,19 @@
                                         <label class="block text-xs font-bold text-slate-500 mb-1.5">Tahun Ajaran</label>
                                         <input type="text" id="set-tahun-ajaran" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
                                     </div>
+                                    <div class="md:col-span-2 mt-2">
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">Unggah Logo / Kop Instansi (PNG/JPG, maksimal 2 MB)</label>
+                                        <input type="file" id="set-logo-kop-file" accept="image/png,image/jpeg,image/webp" onchange="previewLogoKop(this)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
+                                        <input type="hidden" id="set-logo-kop-url">
+                                        <div class="mt-3 flex items-center gap-4">
+                                            <img id="set-logo-kop-preview" alt="Pratinjau logo kop" class="hidden w-20 h-20 object-contain border rounded-lg bg-white p-1">
+                                            <p id="set-logo-kop-status" class="text-xs text-slate-500">Pilih gambar logo sekolah. Logo akan tampil pada kop PDF rekap absensi.</p>
+                                        </div>
+                                    </div>
+                                    <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-5 mt-2">
+                                        <div><label class="block text-xs font-bold text-slate-500 mb-1.5">Nama Kepala Sekolah</label><input type="text" id="set-kepala-sekolah" maxlength="120" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></div>
+                                        <div><label class="block text-xs font-bold text-slate-500 mb-1.5">NIP Kepala Sekolah</label><input type="text" id="set-nip-kepala-sekolah" maxlength="40" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm"></div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -1172,7 +1185,7 @@
                                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-2"><i class="fas fa-shield-alt mr-2"></i> Keamanan & Hak Akses</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                                     <div class="md:col-span-2">
-                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">Nama Administrator</label>
+                                        <label class="block text-xs font-bold text-slate-500 mb-1.5">Nama Admin Absensi (Penanggung Jawab)</label>
                                         <input type="text" id="set-nama-admin" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 font-bold text-slate-800">
                                     </div>
                                     <div>
@@ -3031,13 +3044,22 @@
                     institution.textContent = 'PEMERINTAH KABUPATEN KATINGAN • DINAS PENDIDIKAN';
                     headerCopy.insertBefore(institution, headerCopy.firstChild);
                 }
-                let printMeta = headerCopy.querySelector('.report-print-meta');
-                if (!printMeta) {
-                    printMeta = document.createElement('p');
-                    printMeta.className = 'report-print-meta';
-                    headerCopy.appendChild(printMeta);
-                }
-                printMeta.textContent = 'Dicetak: ' + new Date().toLocaleString('id-ID', {timeZone:'Asia/Jakarta'}) + ' WIB';
+                const savedLogo = document.getElementById('set-logo-kop-url')?.value || '';
+                let logo = headerCopy.querySelector('#print-school-logo');
+                if (savedLogo) {
+                    if (!logo) { logo=document.createElement('img'); logo.id='print-school-logo'; headerCopy.insertBefore(logo, headerCopy.firstChild); }
+                    logo.src=savedLogo; logo.alt='Logo sekolah';
+                } else if (logo) logo.remove();
+                if (institution) institution.textContent = 'PEMERINTAH KABUPATEN KATINGAN • DINAS PENDIDIKAN';
+                const oldMeta = headerCopy.querySelector('.report-print-meta');
+                if (oldMeta) oldMeta.remove();
+                let signature = areaCopy.querySelector('#rekap-print-signature');
+                if (!signature) { signature=document.createElement('div'); signature.id='rekap-print-signature'; areaCopy.appendChild(signature); }
+                const kepala = document.getElementById('set-kepala-sekolah')?.value || '';
+                const nip = document.getElementById('set-nip-kepala-sekolah')?.value || '';
+                const admin = document.getElementById('set-nama-admin')?.value || '';
+                const todayText = new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Jakarta'});
+                signature.innerHTML = `<div class="signature-date">Bukit Raya, ${todayText}</div><div class="signature-grid"><div><div>Mengetahui,</div><b>Kepala Sekolah</b><div class="signature-space"></div><b class="signature-name">${escapeHtmlIzin(kepala || '........................................')}</b><div>NIP. ${escapeHtmlIzin(nip || '................................')}</div></div><div><div>Petugas Admin Absensi,</div><b>Admin Absensi</b><div class="signature-space"></div><b class="signature-name">${escapeHtmlIzin(admin || '........................................')}</b></div></div>`;
             }
 
             const logTable = areaCopy.querySelector('#table-rekap-log');
@@ -3144,12 +3166,12 @@
                     letter-spacing: .3px !important;
                     text-align: center !important;
                 }
-                #rekap-print-header .report-print-meta {
-                    margin: 2mm 0 0 !important;
-                    font-size: 7.5pt !important;
-                    color: #444 !important;
-                    text-align: right !important;
-                }
+                #rekap-print-header #print-school-logo { display:block !important; width:22mm !important; height:22mm !important; object-fit:contain !important; margin:0 auto 2mm !important; }
+                #rekap-print-signature { display:block !important; width:100% !important; margin:12mm 0 0 !important; break-inside:avoid !important; page-break-inside:avoid !important; font-size:10pt !important; color:#111 !important; }
+                #rekap-print-signature .signature-date { text-align:right !important; margin-bottom:3mm !important; }
+                #rekap-print-signature .signature-grid { display:grid !important; grid-template-columns:1fr 1fr !important; gap:20mm !important; text-align:center !important; }
+                #rekap-print-signature .signature-space { height:22mm !important; }
+                #rekap-print-signature .signature-name { text-decoration:underline !important; }
                 #rekap-print-header h2 {
                     margin: 0 0 1mm !important;
                     font-size: 14pt !important;
@@ -3496,6 +3518,9 @@
                         if(s['Password Guru']) document.getElementById('set-pass-guru').value = s['Password Guru'];
                         if(s['Password Wali']) document.getElementById('set-pass-wali').value = s['Password Wali'];
                         if(s['Nama Admin']) document.getElementById('set-nama-admin').value = s['Nama Admin'];
+                        if(document.getElementById('set-kepala-sekolah')) document.getElementById('set-kepala-sekolah').value = s['Nama Kepala Sekolah'] || '';
+                        if(document.getElementById('set-nip-kepala-sekolah')) document.getElementById('set-nip-kepala-sekolah').value = s['NIP Kepala Sekolah'] || '';
+                        if(s['Logo Kop Sekolah']) { document.getElementById('set-logo-kop-url').value = s['Logo Kop Sekolah']; const im=document.getElementById('set-logo-kop-preview'); im.src=s['Logo Kop Sekolah']; im.classList.remove('hidden'); document.getElementById('set-logo-kop-status').textContent='Logo kop tersimpan.'; }
                         const semesterAktif = String(s['Semester Aktif'] || 'Ganjil').replace(/^'+/, '').trim();
                         document.getElementById('set-semester-aktif').value = (semesterAktif === 'Genap') ? 'Genap' : 'Ganjil';
                         updateSemesterAktifPreview();
@@ -3601,6 +3626,19 @@
             if (e.target && e.target.id === 'set-semester-aktif') updateSemesterAktifPreview();
         });
 
+        function previewLogoKop(input) {
+            const file = input && input.files && input.files[0];
+            const status = document.getElementById('set-logo-kop-status');
+            const preview = document.getElementById('set-logo-kop-preview');
+            if (!file) return;
+            if (!/^image\/(png|jpeg|webp)$/.test(file.type)) { input.value=''; showToast('Format logo harus PNG, JPG, atau WebP.','error'); return; }
+            if (file.size > 2 * 1024 * 1024) { input.value=''; showToast('Ukuran logo maksimal 2 MB.','error'); return; }
+            const reader = new FileReader();
+            reader.onload = function(){ preview.src=reader.result; preview.classList.remove('hidden'); status.textContent='Logo siap diunggah saat Simpan Pengaturan.'; };
+            reader.onerror = function(){ showToast('Gagal membaca file logo.','error'); };
+            reader.readAsDataURL(file);
+        }
+
         function submitPengaturan(e) {
             e.preventDefault();
             const newData = {
@@ -3612,9 +3650,13 @@
                 'Password Guru': document.getElementById('set-pass-guru').value,
                 'Password Wali': document.getElementById('set-pass-wali').value,
                 'Nama Admin': document.getElementById('set-nama-admin').value,
+                'Nama Kepala Sekolah': document.getElementById('set-kepala-sekolah').value,
+                'NIP Kepala Sekolah': document.getElementById('set-nip-kepala-sekolah').value,
                 'Semester Aktif': document.getElementById('set-semester-aktif').value
             };
-            showLoading("Menyimpan Pengaturan...");
+            const logoFile = document.getElementById('set-logo-kop-file').files[0];
+            const saveSettings = function() {
+              showLoading("Menyimpan Pengaturan...");
             google.script.run
                 .withSuccessHandler(function(res) {
                     hideLoading();
@@ -3625,6 +3667,17 @@
                 })
                 .withFailureHandler(function(error) { hideLoading(); })
                 .apiSaveSettings(currentUser.sessionToken, newData);
+            };
+            if (logoFile) {
+                const reader = new FileReader();
+                reader.onload = function(){ newData['Logo Kop Sekolah'] = reader.result; saveSettings(); };
+                reader.onerror = function(){ showToast('Gagal membaca file logo.','error'); };
+                reader.readAsDataURL(logoFile);
+            } else {
+                const savedLogo = document.getElementById('set-logo-kop-url').value;
+                if (savedLogo) newData['Logo Kop Sekolah'] = savedLogo;
+                saveSettings();
+            }
         }
 
         function submitManualAbsen(e) {
