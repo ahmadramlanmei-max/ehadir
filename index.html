@@ -3152,9 +3152,12 @@
 
                 #rekap-print-header {
                     display: block !important;
+                    position: relative !important;
+                    box-sizing: border-box !important;
                     width: 100% !important;
+                    min-height: 27mm !important;
                     margin: 0 0 4mm !important;
-                    padding: 0 0 2.5mm !important;
+                    padding: 0 27mm 2.5mm !important;
                     border: 0 !important;
                     border-bottom: 1.2px solid #111 !important;
                     text-align: center !important;
@@ -3166,7 +3169,7 @@
                     letter-spacing: .3px !important;
                     text-align: center !important;
                 }
-                #rekap-print-header #print-school-logo { display:block !important; width:22mm !important; height:22mm !important; object-fit:contain !important; margin:0 auto 2mm !important; }
+                #rekap-print-header #print-school-logo { display:block !important; position:absolute !important; left:5mm !important; top:0 !important; width:22mm !important; height:22mm !important; object-fit:contain !important; object-position:center center !important; margin:0 !important; }
                 #rekap-print-signature { display:block !important; width:100% !important; margin:12mm 0 0 !important; break-inside:avoid !important; page-break-inside:avoid !important; font-size:10pt !important; color:#111 !important; }
                 #rekap-print-signature .signature-date { text-align:right !important; margin-bottom:3mm !important; }
                 #rekap-print-signature .signature-grid { display:grid !important; grid-template-columns:1fr 1fr !important; gap:20mm !important; text-align:center !important; }
