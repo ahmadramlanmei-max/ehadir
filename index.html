@@ -1516,40 +1516,132 @@
         const EHADIR_VAPID_PUBLIC_KEY = 'BHvz1yaqugYJLKU50A3bit_26UJiqHN34V8TlfzB6dPr-qiqaROvbVbXQuzTE-AQJnRTgLiCEjzfVQdAUYJvkHk';
         function ehUrlBase64ToUint8Array(base64String) { const padding='='.repeat((4-base64String.length%4)%4); const raw=atob((base64String+padding).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from([...raw].map(c=>c.charCodeAt(0))); }
         async function enableWaliPush() {
-            const status=document.getElementById('eh-push-status');
+            const status = document.getElementById('eh-push-status');
             try {
-                if(!currentUser||currentUser.role!=='wali'||!currentUser.sessionToken) throw new Error('Silakan login menggunakan akun orang tua/wali.');
-                if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)) throw new Error('Browser ini belum mendukung notifikasi Web Push. Gunakan Chrome Android terbaru.');
-                if(!window.isSecureContext) throw new Error('Notifikasi memerlukan HTTPS. Buka aplikasi melalui alamat GitHub Pages.');
-                if(status) status.textContent='Meminta izin notifikasi...';
-                const permission=await Notification.requestPermission(); if(permission!=='granted') throw new Error('Izin notifikasi belum diberikan. Aktifkan izin situs melalui pengaturan Chrome.');
-                const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./'}); await navigator.serviceWorker.ready;
-                let sub=await reg.pushManager.getSubscription();
-                if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:ehUrlBase64ToUint8Array(EHADIR_VAPID_PUBLIC_KEY)});
-                const res=await fetch(window.EHADIR_WORKER_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'apiPushRegister',args:[currentUser.sessionToken,sub.toJSON(),navigator.userAgent]})});
-                const data=await res.json(); if(!res.ok||data.status!=='success') throw new Error(data.message||'Gagal menyimpan perangkat.');
-                if(status) status.textContent='Notifikasi HP aktif pada perangkat ini.';
-                document.getElementById('eh-push-enable')?.classList.add('hidden'); document.getElementById('eh-push-disable')?.classList.remove('hidden');
-                showToast('Notifikasi HP berhasil diaktifkan.','success');
-            } catch(e) { if(status) status.textContent=e.message||String(e); showToast(e.message||'Gagal mengaktifkan notifikasi.','error'); }
+                if (!currentUser || currentUser.role !== 'wali' || !currentUser.sessionToken) {
+                    throw new Error('Silakan login menggunakan akun orang tua/wali.');
+                }
+                if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+                    throw new Error('Browser ini belum mendukung notifikasi Web Push. Gunakan Chrome Android terbaru.');
+                }
+                if (!window.isSecureContext) {
+                    throw new Error('Notifikasi memerlukan HTTPS. Buka aplikasi melalui alamat GitHub Pages.');
+                }
+                if (status) status.textContent = 'Meminta izin notifikasi...';
+                const permission = await Notification.requestPermission();
+                if (permission !== 'granted') {
+                    throw new Error('Izin notifikasi belum diberikan. Aktifkan izin situs melalui pengaturan Chrome.');
+                }
+
+                const reg = await navigator.serviceWorker.register('./sw.js', {scope:'./'});
+                await navigator.serviceWorker.ready;
+                let sub = await reg.pushManager.getSubscription();
+
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({
+                        userVisibleOnly:true,
+                        applicationServerKey:ehUrlBase64ToUint8Array(EHADIR_VAPID_PUBLIC_KEY)
+                    });
+                }
+
+                const res = await fetch(window.EHADIR_WORKER_API_URL, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        method:'apiPushRegister',
+                        args:[currentUser.sessionToken,sub.toJSON(),navigator.userAgent]
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Gagal menyimpan perangkat.');
+                }
+
+                await refreshWaliPushStatus();
+                showToast('Notifikasi HP berhasil diaktifkan untuk akun anak ini.','success');
+            } catch(e) {
+                if (status) status.textContent = e.message || String(e);
+                showToast(e.message || 'Gagal mengaktifkan notifikasi.','error');
+            }
         }
+
         async function disableWaliPush() {
-            const status=document.getElementById('eh-push-status');
+            const status = document.getElementById('eh-push-status');
             try {
-                if(!currentUser||currentUser.role!=='wali') throw new Error('Akun wali diperlukan.');
-                const reg=await navigator.serviceWorker.getRegistration('./'); const sub=reg&&await reg.pushManager.getSubscription();
-                if(!sub){if(status)status.textContent='Tidak ada perangkat aktif.';return;}
-                const res=await fetch(window.EHADIR_WORKER_API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:'apiPushUnregister',args:[currentUser.sessionToken,sub.endpoint]})});
-                const data=await res.json(); if(data.status!=='success') throw new Error(data.message||'Gagal menonaktifkan.');
-                await sub.unsubscribe(); if(status)status.textContent='Notifikasi HP dinonaktifkan.';
-                document.getElementById('eh-push-enable')?.classList.remove('hidden'); document.getElementById('eh-push-disable')?.classList.add('hidden');
-                showToast('Notifikasi HP dinonaktifkan.','success');
-            } catch(e){if(status)status.textContent=e.message||String(e);showToast(e.message||'Gagal menonaktifkan.','error');}
+                if (!currentUser || currentUser.role !== 'wali' || !currentUser.sessionToken) {
+                    throw new Error('Akun wali diperlukan.');
+                }
+
+                const reg = await navigator.serviceWorker.getRegistration('./');
+                const sub = reg && await reg.pushManager.getSubscription();
+                if (!sub) {
+                    await refreshWaliPushStatus();
+                    return;
+                }
+
+                const res = await fetch(window.EHADIR_WORKER_API_URL, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        method:'apiPushUnregister',
+                        args:[currentUser.sessionToken,sub.endpoint]
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok || data.status !== 'success') {
+                    throw new Error(data.message || 'Gagal menonaktifkan notifikasi.');
+                }
+
+                // Subscription browser sengaja tidak dihapus agar dapat dipakai
+                // oleh akun wali lain pada perangkat yang sama.
+                await refreshWaliPushStatus();
+                showToast('Notifikasi untuk akun anak ini dinonaktifkan.','success');
+            } catch(e) {
+                if (status) status.textContent = e.message || String(e);
+                showToast(e.message || 'Gagal menonaktifkan.','error');
+            }
         }
-        async function refreshWaliPushStatus(){
-            if(!currentUser||currentUser.role!=='wali')return;
-            try{const reg=await navigator.serviceWorker.getRegistration('./');const sub=reg&&await reg.pushManager.getSubscription();const on=!!sub;document.getElementById('eh-push-enable')?.classList.toggle('hidden',on);document.getElementById('eh-push-disable')?.classList.toggle('hidden',!on);const s=document.getElementById('eh-push-status');if(s)s.textContent=on?'Notifikasi HP terdaftar pada perangkat ini.':'Notifikasi HP belum diaktifkan pada perangkat ini.';}catch(e){}
+
+        async function refreshWaliPushStatus() {
+            if (!currentUser || currentUser.role !== 'wali' || !currentUser.sessionToken) return;
+
+            const enableBtn = document.getElementById('eh-push-enable');
+            const disableBtn = document.getElementById('eh-push-disable');
+            const status = document.getElementById('eh-push-status');
+
+            try {
+                const reg = await navigator.serviceWorker.getRegistration('./');
+                const sub = reg && await reg.pushManager.getSubscription();
+                let active = false;
+
+                if (sub) {
+                    const res = await fetch(window.EHADIR_WORKER_API_URL, {
+                        method:'POST',
+                        headers:{'Content-Type':'application/json'},
+                        body:JSON.stringify({
+                            method:'apiPushStatus',
+                            args:[currentUser.sessionToken,sub.endpoint]
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || data.status !== 'success') {
+                        throw new Error(data.message || 'Gagal memeriksa status notifikasi.');
+                    }
+                    active = data.active === true;
+                }
+
+                if (enableBtn) enableBtn.classList.toggle('hidden',active);
+                if (disableBtn) disableBtn.classList.toggle('hidden',!active);
+                if (status) {
+                    status.textContent = active
+                        ? 'Notifikasi HP aktif untuk akun anak ini.'
+                        : 'Notifikasi HP belum diaktifkan untuk akun ini.';
+                }
+            } catch(e) {
+                if (status) status.textContent = e.message || 'Status notifikasi belum dapat diperiksa.';
+            }
         }
+
         let currentUser = null;
         let html5QrCode = null;
         let isScannerRunning = false;
