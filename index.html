@@ -880,17 +880,19 @@
 
 
     <style id="ehadir-qr-card-professional">
-      /* Desain kartu QR siswa: ukuran layar tetap mengikuti generator 320 x 200 px. */
       #view-kartu #print-area {
         align-items: start !important;
         justify-items: center !important;
         gap: 22px !important;
       }
       #view-kartu .print-card {
-        width: 100% !important;
-        max-width: 320px !important;
+        display: flex !important;
+        width: 320px !important;
+        max-width: min(320px, 100%) !important;
         height: 200px !important;
         min-height: 200px !important;
+        max-height: 200px !important;
+        flex: 0 0 auto !important;
         border: 1px solid #dbe5f1 !important;
         border-radius: 17px !important;
         background: #fff !important;
@@ -898,87 +900,187 @@
         overflow: hidden !important;
         transform: none !important;
       }
-      #view-kartu .print-card > div:first-child {
-        width: 80px !important;
-        min-width: 80px !important;
-        background: linear-gradient(155deg, #173f82 0%, #1d5bb8 54%, #0e7490 100%) !important;
-        padding: 13px 9px !important;
-        box-shadow: 4px 0 14px rgba(15, 35, 68, .12) !important;
-      }
-      #view-kartu .print-card > div:first-child i {
-        color: #dbeafe !important;
-        filter: drop-shadow(0 3px 5px rgba(0,0,0,.15));
-      }
-      #view-kartu .print-card > div:first-child div {
+      #view-kartu .qr-card-brand {
+        width: 68px !important;
+        min-width: 68px !important;
+        max-width: 68px !important;
+        height: 100% !important;
+        flex: 0 0 68px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 10px 5px !important;
         color: #fff !important;
-        font-size: 9px !important;
-        letter-spacing: .13em !important;
-        line-height: 1.45 !important;
+        text-align: center !important;
+        background: linear-gradient(155deg, #153a78 0%, #1d5bb8 55%, #087e91 100%) !important;
       }
-      #view-kartu .print-card > div:nth-child(2) {
+      #view-kartu .qr-card-brand-mark {
+        width: 34px !important;
+        height: 34px !important;
+        display: grid !important;
+        place-items: center !important;
+        border: 1px solid rgba(255,255,255,.35) !important;
+        border-radius: 11px !important;
+        color: #fff !important;
+        font-size: 17px !important;
+        background: rgba(255,255,255,.12) !important;
+      }
+      #view-kartu .qr-card-brand-label {
+        color: #fff !important;
+        font-size: 8px !important;
+        line-height: 1.45 !important;
+        font-weight: 900 !important;
+        letter-spacing: .12em !important;
+      }
+      #view-kartu .qr-card-brand-line {
+        width: 27px !important;
+        height: 1px !important;
+        background: rgba(255,255,255,.45) !important;
+      }
+      #view-kartu .qr-card-brand-caption {
+        color: #dbeafe !important;
+        font-size: 7px !important;
+        font-weight: 800 !important;
+        letter-spacing: .16em !important;
+      }
+      #view-kartu .qr-card-content {
+        position: relative !important;
+        display: flex !important;
+        flex: 1 1 0 !important;
         min-width: 0 !important;
-        padding: 15px 15px 12px !important;
-        background: linear-gradient(145deg, #fff 0%, #f5f8fd 100%) !important;
+        height: 100% !important;
+        flex-direction: column !important;
+        padding: 10px 11px 9px !important;
+        overflow: hidden !important;
+        background: linear-gradient(145deg, #fff 0%, #f4f8fd 100%) !important;
       }
-      #view-kartu .print-card > div:nth-child(2) > i {
-        color: #dbe7f5 !important;
-        opacity: .55 !important;
+      #view-kartu .qr-school-identity {
+        display: flex !important;
+        align-items: center !important;
+        gap: 7px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 31px !important;
+        padding-bottom: 6px !important;
+        border-bottom: 1px solid #e6edf6 !important;
       }
-      #view-kartu .print-card h4 {
-        position: relative !important;
-        color: #142b4d !important;
-        font-size: 12px !important;
-        font-weight: 800 !important;
-        letter-spacing: .025em !important;
+      #view-kartu .qr-school-logo,
+      #view-kartu .qr-school-logo-fallback {
+        display: flex !important;
+        flex: 0 0 25px !important;
+        width: 25px !important;
+        height: 25px !important;
+        max-width: 25px !important;
+        max-height: 25px !important;
+        object-fit: contain !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        background: #fff !important;
+      }
+      #view-kartu .qr-school-logo-fallback {
+        color: #2563eb !important;
+        border: 1px solid #dbeafe !important;
+      }
+      #view-kartu .qr-school-name {
+        min-width: 0 !important;
+        color: #1d3557 !important;
+        font-size: 8px !important;
+        font-weight: 900 !important;
         line-height: 1.25 !important;
+        letter-spacing: .025em !important;
+        text-transform: uppercase !important;
+        overflow: hidden !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
         overflow-wrap: anywhere !important;
-        white-space: normal !important;
-        max-height: 2.5em !important;
       }
-      #view-kartu .print-card p {
-        position: relative !important;
-        color: #718198 !important;
+      #view-kartu .qr-student-info {
+        min-width: 0 !important;
+        padding-top: 7px !important;
+      }
+      #view-kartu .qr-student-info h4 {
+        margin: 0 0 4px !important;
+        color: #142b4d !important;
         font-size: 10px !important;
-        line-height: 1.45 !important;
+        font-weight: 900 !important;
+        line-height: 1.2 !important;
+        text-transform: uppercase !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
       }
-      #view-kartu .print-card p span {
+      #view-kartu .qr-student-info p {
+        margin: 2px 0 !important;
+        color: #7b8ba3 !important;
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        line-height: 1.25 !important;
+      }
+      #view-kartu .qr-student-info p span {
         color: #263d5c !important;
-        font-weight: 800 !important;
+        font-weight: 900 !important;
       }
-      #view-kartu .print-card .qr-code-container {
-        width: 64px !important;
-        height: 64px !important;
+      #view-kartu .qr-code-frame {
+        position: absolute !important;
+        right: 10px !important;
+        bottom: 8px !important;
+        width: 62px !important;
+        height: 62px !important;
+        min-width: 62px !important;
+        min-height: 62px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        padding: 3px !important;
+        border: 1px solid #e3eaf3 !important;
+        border-radius: 9px !important;
+        background: #fff !important;
+        box-shadow: 0 3px 9px rgba(15,35,68,.07) !important;
+        overflow: hidden !important;
+      }
+      #view-kartu .qr-code-container {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 0 0 56px !important;
+        width: 56px !important;
+        height: 56px !important;
+        min-width: 56px !important;
+        min-height: 56px !important;
+        max-width: 56px !important;
+        max-height: 56px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
         background: #fff !important;
       }
-      #view-kartu .print-card .qr-code-container canvas,
-      #view-kartu .print-card .qr-code-container img {
+      #view-kartu .qr-code-container canvas,
+      #view-kartu .qr-code-container img {
         display: block !important;
-        width: 64px !important;
-        height: 64px !important;
-        max-width: 64px !important;
-        max-height: 64px !important;
+        flex: 0 0 56px !important;
+        width: 56px !important;
+        height: 56px !important;
+        min-width: 56px !important;
+        min-height: 56px !important;
+        max-width: 56px !important;
+        max-height: 56px !important;
+        margin: 0 !important;
+        padding: 0 !important;
         object-fit: contain !important;
-        image-rendering: pixelated;
+        image-rendering: pixelated !important;
       }
       @media (max-width: 767px) {
         #view-kartu #print-area {
           grid-template-columns: minmax(0, 1fr) !important;
           justify-items: center !important;
         }
-        #view-kartu .print-card {
-          max-width: min(320px, 100%) !important;
-        }
-        #view-kartu > div:first-child > div:last-child {
-          width: 100%;
-          flex-wrap: wrap;
-        }
-        #view-kartu > div:first-child > div:last-child button {
-          flex: 1 1 140px;
-          justify-content: center;
-        }
+        #view-kartu .print-card { max-width: min(320px, 100%) !important; }
+        #view-kartu > div:first-child > div:last-child { width: 100%; flex-wrap: wrap; }
+        #view-kartu > div:first-child > div:last-child button { flex: 1 1 140px; justify-content: center; }
       }
     </style>
 
@@ -3939,7 +4041,7 @@
                         const printableQr = document.createElement('img');
                         printableQr.src = qrSrc;
                         printableQr.alt = 'QR Code siswa';
-                        printableQr.style.cssText = 'display:block;width:16.93mm;height:16.93mm;max-width:16.93mm;max-height:16.93mm;object-fit:contain;image-rendering:pixelated;';
+                        printableQr.style.cssText = 'display:block;width:14.82mm;height:14.82mm;max-width:14.82mm;max-height:14.82mm;object-fit:contain;image-rendering:pixelated;';
                         targetQr.appendChild(printableQr);
                     }
                 }
@@ -4048,13 +4150,43 @@
                 .print-card .qr-code-container img,
                 .print-card .qr-code-container canvas {
                     display: block !important;
-                    width: 16.93mm !important;
-                    height: 16.93mm !important;
-                    max-width: 16.93mm !important;
-                    max-height: 16.93mm !important;
+                    width: 14.82mm !important;
+                    height: 14.82mm !important;
+                    max-width: 14.82mm !important;
+                    max-height: 14.82mm !important;
                     object-fit: contain !important;
                     image-rendering: pixelated !important;
                 }
+                .print-card .qr-school-logo,
+                .print-card .qr-school-logo-fallback {
+                    display: flex !important;
+                    flex: 0 0 6.6mm !important;
+                    width: 6.6mm !important;
+                    height: 6.6mm !important;
+                    max-width: 6.6mm !important;
+                    max-height: 6.6mm !important;
+                    object-fit: contain !important;
+                }
+                .print-card .qr-code-frame {
+                    position: absolute !important;
+                    right: 2.5mm !important;
+                    bottom: 2mm !important;
+                    width: 16.4mm !important;
+                    height: 16.4mm !important;
+                    min-width: 16.4mm !important;
+                    min-height: 16.4mm !important;
+                    padding: .8mm !important;
+                }
+                .print-card .qr-card-brand {
+                    width: 18mm !important;
+                    min-width: 18mm !important;
+                    max-width: 18mm !important;
+                    flex: 0 0 18mm !important;
+                }
+                .print-card .qr-card-content { padding: 2.6mm 2.9mm 2.2mm !important; }
+                .print-card .qr-school-name { font-size: 6pt !important; }
+                .print-card .qr-student-info h4 { font-size: 7.5pt !important; }
+                .print-card .qr-student-info p { font-size: 6pt !important; }
                 .print-card .qr-code-container span { font-size: 6pt !important; }
                 @media print {
                     html, body { width: 100% !important; max-width: 100% !important; }
@@ -4071,14 +4203,24 @@
 
             // Gambar QR berasal dari data lokal; jangan menunggu font atau CDN eksternal.
             printWindow.onafterprint = () => { try { printWindow.close(); } catch (e) {} };
-            setTimeout(() => {
+            const triggerCardPrint = () => {
                 try {
                     printWindow.focus();
                     printWindow.print();
                 } catch (err) {
                     showToast('Pratinjau kartu gagal dibuka. Izinkan pop-up lalu coba lagi.', 'error');
                 }
-            }, 500);
+            };
+            const logoImages = Array.from(printWindow.document.querySelectorAll('.qr-school-logo'));
+            const pendingLogos = logoImages.filter(img => !img.complete);
+            if (pendingLogos.length) {
+                let remaining = pendingLogos.length;
+                const logoDone = () => { remaining--; if (remaining <= 0) triggerCardPrint(); };
+                pendingLogos.forEach(img => { img.onload = logoDone; img.onerror = logoDone; });
+                setTimeout(triggerCardPrint, 2500);
+            } else {
+                setTimeout(triggerCardPrint, 350);
+            }
         }
 
         function submitImport(e) {
@@ -4392,22 +4534,37 @@
             allStudentsCache.forEach(s => {
                 const card = document.createElement('div');
                 card.className = "print-card bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden relative w-full max-w-[320px] h-[200px] flex transition-transform hover:scale-105";
+                const schoolName = String(
+                    (document.getElementById('header-school-name') && document.getElementById('header-school-name').textContent) ||
+                    (document.getElementById('set-nama-sekolah') && document.getElementById('set-nama-sekolah').value) ||
+                    'NAMA SEKOLAH'
+                ).trim();
+                const schoolLogoUrl = String(
+                    (document.getElementById('set-logo-kop-url') && document.getElementById('set-logo-kop-url').value) || ''
+                ).trim();
+                const safeSchoolName = escapeHtmlIzin(schoolName);
+                const safeStudentName = escapeHtmlIzin(String(s.nama || ''));
+                const safeNis = escapeHtmlIzin(String(s.nis == null ? '' : s.nis));
+                const safeKelas = escapeHtmlIzin(String(s.kelas || ''));
                 card.innerHTML = `
-                    <div class="bg-blue-700 w-[80px] flex flex-col items-center justify-center text-white p-3 text-center shrink-0 shadow-[4px_0_10px_rgba(0,0,0,0.1)] z-10">
-                        <i class="fas fa-graduation-cap text-3xl mb-2"></i>
-                        <div class="text-[10px] font-black leading-tight tracking-widest uppercase">ID CARD<br>SISWA</div>
+                    <div class="qr-card-brand">
+                        <div class="qr-card-brand-mark"><i class="fas fa-graduation-cap"></i></div>
+                        <div class="qr-card-brand-label">KARTU<br>PELAJAR</div>
+                        <div class="qr-card-brand-line"></div>
+                        <div class="qr-card-brand-caption">E-HADIR</div>
                     </div>
-                    <div class="flex-1 p-5 flex flex-col justify-between overflow-hidden bg-slate-50 relative">
-                        <i class="fas fa-qrcode absolute text-8xl text-slate-200 -bottom-4 -right-4 opacity-50 pointer-events-none"></i>
-                        <div class="z-20 relative">
-                            <h4 class="font-black text-slate-800 uppercase text-sm leading-snug mb-1.5 truncate" title="${s.nama}">${s.nama}</h4>
-                            <p class="text-[11px] font-bold text-slate-500 mb-0.5">NIS: <span class="text-slate-700">${s.nis}</span></p>
-                            <p class="text-[11px] font-bold text-slate-500">Kelas: <span class="text-slate-700">${s.kelas}</span></p>
+                    <div class="qr-card-content">
+                        <div class="qr-school-identity">
+                            ${schoolLogoUrl ? `<img class="qr-school-logo" src="${escapeHtmlIzin(schoolLogoUrl)}" alt="Logo sekolah">` : `<span class="qr-school-logo-fallback"><i class="fas fa-school"></i></span>`}
+                            <div class="qr-school-name" title="${safeSchoolName}">${safeSchoolName}</div>
                         </div>
-                        <div class="flex justify-end mt-2 z-20 relative">
-                            <div class="bg-white p-1.5 rounded-xl shadow-sm border border-slate-100">
-                                <div class="qr-code-container w-[64px] h-[64px]"></div>
-                            </div>
+                        <div class="qr-student-info">
+                            <h4 title="${safeStudentName}">${safeStudentName}</h4>
+                            <p>NIS <span>${safeNis}</span></p>
+                            <p>KELAS <span>${safeKelas}</span></p>
+                        </div>
+                        <div class="qr-code-frame">
+                            <div class="qr-code-container" aria-label="QR Code siswa"></div>
                         </div>
                     </div>
                 `;
@@ -4419,7 +4576,7 @@
                 const studentId = String(s.id == null ? '' : s.id).trim();
                 if (!studentId) {
                     qrGagal++;
-                    qrContainer.innerHTML = '<span style="display:flex;width:64px;height:64px;align-items:center;justify-content:center;font-size:9px;text-align:center;color:#b91c1c;line-height:1.1">ID SISWA<br>KOSONG</span>';
+                    qrContainer.innerHTML = '<span style="display:flex;width:56px;height:56px;align-items:center;justify-content:center;font-size:8px;text-align:center;color:#b91c1c;line-height:1.1">ID SISWA<br>KOSONG</span>';
                     return;
                 }
                 try {
@@ -4433,7 +4590,7 @@
                     });
                 } catch (err) {
                     qrGagal++;
-                    qrContainer.innerHTML = '<span style="display:flex;width:64px;height:64px;align-items:center;justify-content:center;font-size:9px;text-align:center;color:#b91c1c;line-height:1.1">QR GAGAL</span>';
+                    qrContainer.innerHTML = '<span style="display:flex;width:56px;height:56px;align-items:center;justify-content:center;font-size:8px;text-align:center;color:#b91c1c;line-height:1.1">QR GAGAL</span>';
                     console.error('Gagal membuat QR untuk siswa:', studentId, err);
                 }
             });
