@@ -645,6 +645,239 @@
         }
     </style>
 
+
+    <style id="ehadir-app-visual-system">
+      /* Penyegaran visual aplikasi setelah login. Tidak mengubah struktur, teks, ID, atau logika JavaScript. */
+      body.is-logged-in {
+        background: #f3f6fb !important;
+        color: #17243b !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+      }
+
+      body.is-logged-in #app-sidebar {
+        background: linear-gradient(180deg, #101d36 0%, #0b162b 100%) !important;
+        border-right: 1px solid rgba(148,163,184,.13) !important;
+        box-shadow: 12px 0 34px rgba(15,23,42,.08) !important;
+      }
+      body.is-logged-in #app-sidebar > div:first-child {
+        background: linear-gradient(135deg, #0b1428, #142747) !important;
+        border-bottom: 1px solid rgba(148,163,184,.16) !important;
+      }
+      body.is-logged-in #app-sidebar > div:first-child h2 {
+        letter-spacing: -.045em !important;
+      }
+      body.is-logged-in #app-sidebar > div:first-child h2 i {
+        color: #60a5fa !important;
+      }
+      body.is-logged-in #app-sidebar > nav {
+        padding: 18px 13px !important;
+      }
+      body.is-logged-in #app-sidebar > nav .nav-btn {
+        min-height: 47px !important;
+        margin: 3px 0 !important;
+        padding: 11px 13px !important;
+        border: 1px solid transparent !important;
+        border-radius: 13px !important;
+        color: #c4d0e2 !important;
+        font-size: .91rem !important;
+        font-weight: 600 !important;
+        transition: background .18s ease, color .18s ease, border-color .18s ease !important;
+      }
+      body.is-logged-in #app-sidebar > nav .nav-btn i {
+        color: #91a6c5 !important;
+        transition: color .18s ease !important;
+      }
+      body.is-logged-in #app-sidebar > nav .nav-btn:hover,
+      body.is-logged-in #app-sidebar > nav .nav-btn:focus-visible {
+        color: #fff !important;
+        background: rgba(96,165,250,.13) !important;
+        border-color: rgba(96,165,250,.16) !important;
+      }
+      body.is-logged-in #app-sidebar > nav .nav-btn:hover i,
+      body.is-logged-in #app-sidebar > nav .nav-btn:focus-visible i {
+        color: #93c5fd !important;
+      }
+      body.is-logged-in #app-sidebar > div:last-child {
+        background: rgba(7,17,34,.72) !important;
+        border-top: 1px solid rgba(148,163,184,.14) !important;
+      }
+      body.is-logged-in #app-sidebar > div:last-child button {
+        border: 1px solid rgba(248,113,113,.14) !important;
+        border-radius: 12px !important;
+      }
+
+      body.is-logged-in #app-main {
+        background: #f3f6fb !important;
+      }
+      body.is-logged-in #app-main > header {
+        min-height: 72px !important;
+        background: rgba(255,255,255,.96) !important;
+        border-bottom: 1px solid #e5ebf3 !important;
+        box-shadow: 0 3px 14px rgba(15,23,42,.035) !important;
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+      }
+      body.is-logged-in #header-school-name {
+        color: #172b4d !important;
+        font-weight: 800 !important;
+        letter-spacing: -.025em !important;
+      }
+      body.is-logged-in #clock-date {
+        color: #7b8ba3 !important;
+      }
+      body.is-logged-in #clock-time {
+        color: #2563eb !important;
+        letter-spacing: -.035em !important;
+      }
+      body.is-logged-in #sound-btn {
+        border: 1px solid #e5ebf3 !important;
+        background: #f4f7fb !important;
+      }
+
+      body.is-logged-in #content-area {
+        background:
+          radial-gradient(circle at 95% 0%, rgba(219,234,254,.30), transparent 24rem),
+          #f3f6fb !important;
+        padding: clamp(16px, 2.2vw, 32px) !important;
+        scroll-behavior: smooth;
+      }
+      body.is-logged-in .view-section > div,
+      body.is-logged-in .view-section > section > div {
+        min-width: 0;
+      }
+      body.is-logged-in .view-section h2,
+      body.is-logged-in .view-section h3,
+      body.is-logged-in .view-section h4 {
+        letter-spacing: -.025em;
+      }
+      body.is-logged-in .view-section h2 {
+        color: #172b4d !important;
+      }
+      body.is-logged-in .view-section p {
+        line-height: 1.55;
+      }
+
+      /* Panel dan kartu: pertahankan warna status dan fungsi bawaan masing-masing komponen. */
+      body.is-logged-in .view-section .bg-white {
+        border-color: #e5ebf3 !important;
+        border-radius: 18px !important;
+        box-shadow: 0 5px 18px rgba(15,23,42,.045) !important;
+      }
+      body.is-logged-in .view-section .bg-white[class*="rounded-3xl"],
+      body.is-logged-in .view-section .bg-white[class*="rounded-2xl"] {
+        border-radius: 20px !important;
+      }
+      body.is-logged-in .view-section .shadow-sm {
+        box-shadow: 0 5px 18px rgba(15,23,42,.045) !important;
+      }
+
+      /* Formulir, filter, dan kolom input. */
+      body.is-logged-in .view-section input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+      body.is-logged-in .view-section select,
+      body.is-logged-in .view-section textarea {
+        max-width: 100%;
+        border-color: #dce5f0 !important;
+        border-radius: 11px !important;
+        color: #24364f !important;
+        background-color: #fff !important;
+        transition: border-color .18s ease, box-shadow .18s ease !important;
+      }
+      body.is-logged-in .view-section input:focus,
+      body.is-logged-in .view-section select:focus,
+      body.is-logged-in .view-section textarea:focus {
+        border-color: #60a5fa !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
+      }
+      body.is-logged-in .view-section input::placeholder,
+      body.is-logged-in .view-section textarea::placeholder {
+        color: #9aa9bc !important;
+      }
+
+      /* Tombol: tidak memaksakan satu warna agar fungsi warna status tetap terlihat. */
+      body.is-logged-in .view-section button,
+      body.is-logged-in #app-main header button {
+        border-radius: 11px;
+        font-weight: 700;
+        transition: filter .16s ease, box-shadow .16s ease, transform .16s ease;
+      }
+      body.is-logged-in .view-section button:hover:not(:disabled) {
+        filter: brightness(.97);
+      }
+      body.is-logged-in .view-section button:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+      body.is-logged-in .view-section button:disabled {
+        cursor: not-allowed;
+      }
+
+      /* Tabel data agar lebih ringan dan mudah dibaca. */
+      body.is-logged-in .view-section table {
+        border-color: #e5ebf3;
+      }
+      body.is-logged-in .view-section table thead th {
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .045em;
+      }
+      body.is-logged-in .view-section table tbody tr {
+        transition: background-color .15s ease;
+      }
+      body.is-logged-in .view-section table tbody tr:hover {
+        background-color: #f7faff;
+      }
+      body.is-logged-in .view-section table td,
+      body.is-logged-in .view-section table th {
+        border-color: #e9eef5;
+      }
+
+      /* Area pemindaian tetap gelap agar kamera/QR memiliki kontras yang baik. */
+      body.is-logged-in #reader,
+      body.is-logged-in #reader video {
+        border-radius: 14px !important;
+      }
+
+      @media (min-width: 768px) {
+        body.is-logged-in #app-sidebar {
+          flex: 0 0 16rem !important;
+        }
+      }
+      @media (max-width: 767px) {
+        body.is-logged-in #app-main > header {
+          min-height: 62px !important;
+          height: 62px !important;
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+        }
+        body.is-logged-in #content-area {
+          padding: 14px !important;
+        }
+        body.is-logged-in .view-section .bg-white {
+          border-radius: 15px !important;
+        }
+        body.is-logged-in .view-section table {
+          min-width: 560px;
+        }
+        body.is-logged-in .view-section .overflow-x-auto {
+          max-width: 100%;
+          -webkit-overflow-scrolling: touch;
+        }
+        body.is-logged-in #app-sidebar > nav .nav-btn {
+          min-height: 46px !important;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        body.is-logged-in *,
+        body.is-logged-in *::before,
+        body.is-logged-in *::after {
+          scroll-behavior: auto !important;
+          transition-duration: .01ms !important;
+          animation-duration: .01ms !important;
+        }
+      }
+    </style>
+
 </head>
 <body class="text-slate-800 h-screen flex flex-col md:flex-row overflow-hidden">
 
